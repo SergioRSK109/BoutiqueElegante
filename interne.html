@@ -87,13 +87,32 @@
   .sync-dot.off{background:var(--danger);}
   .muted{color:var(--ink-soft);font-size:.78rem;}
   .items-mini{font-size:.78rem;color:var(--ink-soft);}
+
+  /* login screen */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  #loginScreen .box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:28px;max-width:360px;width:100%;}
+  #loginScreen h1{font-size:1.3rem;margin:0 0 4px;text-align:center;}
+  #loginScreen p{color:var(--ink-soft);font-size:.82rem;text-align:center;margin:0 0 20px;}
+  #loginError{color:var(--danger);font-size:.8rem;margin-top:8px;display:none;}
+  .logout-link{background:none;border:none;color:var(--ink-soft);font-size:.72rem;cursor:pointer;text-decoration:underline;margin-left:8px;}
+  .hidden{display:none !important;}
 </style>
 </head>
 <body>
-<div id="app">
+<div id="loginScreen" class="hidden">
+  <div class="box">
+    <h1>ELEGANTE BOUTIQUE</h1>
+    <p>Espace interne — réservé à l'équipe</p>
+    <div class="field"><label>Email</label><input type="text" id="loginEmail" placeholder="ton.email@exemple.com"></div>
+    <div class="field"><label>Mot de passe</label><input type="text" id="loginPassword" placeholder="Mot de passe" style="-webkit-text-security:disc;text-security:disc;"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="doLogin()">Se connecter</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+<div id="app" class="hidden">
   <div class="app-header">
     <div class="brand"><h1 id="shopTitle">Atelier — Gestion</h1>
-      <span class="sub"><span class="sync-dot" id="syncDot"></span><span id="connStatus">synchronisé</span></span>
+      <span class="sub"><span class="sync-dot" id="syncDot"></span><span id="connStatus">synchronisé</span><button class="logout-link" onclick="doLogout()">se déconnecter</button></span>
     </div>
     <button class="settings-btn" onclick="openSettings()" title="Réglages">⚙</button>
   </div>
@@ -118,6 +137,9 @@ import {
   getDoc, getDocs, onSnapshot, query, orderBy, runTransaction,
   enableIndexedDbPersistence, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* =======================================================
    1) COLLE ICI LA CONFIGURATION DE TON PROJET FIREBASE
@@ -135,21 +157,51 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
 try{ await enableIndexedDbPersistence(db); }catch(e){ console.warn('Persistance hors-ligne non activée:', e.message); }
 
 window.addEventListener('online', ()=> setConnStatus(true));
 window.addEventListener('offline', ()=> setConnStatus(false));
 function setConnStatus(online){
-  document.getElementById('connStatus').textContent = online ? 'synchronisé' : 'hors-ligne — les changements seront envoyés au retour du réseau';
-  document.getElementById('connStatus').classList.toggle('offline', !online);
+  const el = document.getElementById('connStatus');
+  if(!el) return;
+  el.textContent = online ? 'synchronisé' : 'hors-ligne — les changements seront envoyés au retour du réseau';
+  el.classList.toggle('offline', !online);
   document.getElementById('syncDot').classList.toggle('off', !online);
 }
 setConnStatus(navigator.onLine);
 
-/* expose firestore helpers to the rest of the app (non-module script below) */
+/* expose firestore + auth helpers to the rest of the app (non-module script below) */
 window.__fb = { db, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, onSnapshot, query, orderBy, runTransaction, serverTimestamp };
-window.dispatchEvent(new Event('fb-ready'));
+
+let alreadyWired = false;
+onAuthStateChanged(auth, (user) => {
+  const loginScreen = document.getElementById('loginScreen');
+  const app = document.getElementById('app');
+  if(user){
+    loginScreen.classList.add('hidden');
+    app.classList.remove('hidden');
+    if(!alreadyWired){ alreadyWired = true; window.dispatchEvent(new Event('fb-ready')); }
+  } else {
+    loginScreen.classList.remove('hidden');
+    app.classList.add('hidden');
+  }
+});
+
+window.__doLogin = async (email, password) => {
+  try{
+    await signInWithEmailAndPassword(auth, email, password);
+    return null;
+  }catch(e){
+    if(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'){
+      return 'Email ou mot de passe incorrect.';
+    }
+    return 'Erreur de connexion : ' + e.message;
+  }
+};
+window.__doLogout = () => signOut(auth);
 </script>
+
 
 <script>
 /* ---------------------------------------------------------
@@ -178,6 +230,19 @@ function todayISO(){ return new Date().toISOString(); }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
+
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if(!email || !password){ errEl.textContent = 'Renseigne ton email et ton mot de passe.'; errEl.style.display='block'; return; }
+  const error = await window.__doLogin(email, password);
+  if(error){ errEl.textContent = error; errEl.style.display='block'; }
+}
+function doLogout(){ window.__doLogout(); }
+document.getElementById('loginPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
 
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{ state.tab = btn.dataset.tab; render(); });
