@@ -216,7 +216,8 @@ let state = {
     vendeuses: [],
     categories: ['Sac à main','Bijoux','Bracelet','Drap','Porte-clé','Petit Tapis','Grand Tapis','Pyjama','Parfum'],
     whatsapp: '243071080048',
-    adresse: { province:'Nord Kivu', ville:'Goma', quartier:'Katindo', reference:'En face de la salle polyvalente Saint Cyril' }
+    adresse: { province:'Nord Kivu', ville:'Goma', quartier:'Katindo', reference:'En face de la salle polyvalente Saint Cyril' },
+    paiementMobile: { airtel: '0971080048', orange: '0841747264' }
   },
   tab: 'dashboard',
   vente: { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:'' },
@@ -775,6 +776,9 @@ function openSettings(){
       <div class="field"><label>Ville</label><input type="text" id="s_ville" value="${esc((state.meta.adresse&&state.meta.adresse.ville)||'')}"></div></div>
     <div class="field"><label>Quartier</label><input type="text" id="s_quartier" value="${esc((state.meta.adresse&&state.meta.adresse.quartier)||'')}"></div>
     <div class="field"><label>Point de repère</label><input type="text" id="s_reference" value="${esc((state.meta.adresse&&state.meta.adresse.reference)||'')}" placeholder="Ex : En face de..."></div>
+    <label style="margin-top:6px;">Paiement mobile (affiché sur le catalogue client)</label>
+    <div class="row"><div class="field"><label>Numéro Airtel Money</label><input type="tel" id="s_airtel" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.airtel)||'')}" placeholder="0971080048"></div>
+      <div class="field"><label>Numéro Orange Money</label><input type="tel" id="s_orange" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.orange)||'')}" placeholder="0841747264"></div></div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button></div>
   `);
 }
@@ -789,6 +793,10 @@ async function saveSettings(){
     ville: document.getElementById('s_ville').value.trim(),
     quartier: document.getElementById('s_quartier').value.trim(),
     reference: document.getElementById('s_reference').value.trim()
+  };
+  state.meta.paiementMobile = {
+    airtel: document.getElementById('s_airtel').value.trim(),
+    orange: document.getElementById('s_orange').value.trim()
   };
   const { db, doc, setDoc } = window.__fb;
   await setDoc(doc(db,'meta','config'), state.meta);

@@ -82,6 +82,7 @@
   <header>
     <h1 id="shopTitle">Boutique</h1>
     <p>Parcourez, choisissez taille et couleur, réservez — vous payez en boutique.</p>
+    <p id="shopPaiement" class="mono" style="font-size:.76rem;color:var(--ink-soft);margin-top:6px;"></p>
     <p id="shopAddress" class="mono" style="font-size:.76rem;color:var(--ink-soft);margin-top:6px;"></p>
   </header>
   <div class="cat-tabs" id="catTabs"></div>
@@ -138,6 +139,11 @@ window.addEventListener('fb-ready', ()=>{
       const a = meta.adresse || {};
       const parts = [a.quartier, a.reference, a.ville, a.province].filter(Boolean);
       document.getElementById('shopAddress').textContent = parts.length ? 'Retrait : '+parts.join(' · ') : '';
+      const pm = meta.paiementMobile || {};
+      const pmParts = [];
+      if(pm.airtel) pmParts.push('Airtel Money : '+pm.airtel);
+      if(pm.orange) pmParts.push('Orange Money : '+pm.orange);
+      document.getElementById('shopPaiement').textContent = pmParts.length ? 'Paiement mobile : '+pmParts.join(' · ') : '';
     }
   });
 });
@@ -146,6 +152,14 @@ function money(n){ return (Math.round((n||0)*100)/100).toLocaleString('fr-FR',{m
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
 function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0); }
+function paiementMobileTexte(){
+  const pm = meta.paiementMobile || {};
+  const parts = [];
+  if(pm.airtel) parts.push('Airtel Money ('+pm.airtel+')');
+  if(pm.orange) parts.push('Orange Money ('+pm.orange+')');
+  if(parts.length===0) return '';
+  return 'Vous pouvez aussi payer via '+parts.join(' ou ')+'.';
+}
 
 function renderCategories(){
   const cats = ['Toutes', ...new Set(articles.map(a=>a.categorie).filter(Boolean))];
@@ -270,8 +284,10 @@ async function creerFacture(){
 
 function renderFactureModal(commandeId, clientNom, clientTelephone, items, total){
   const dateStr = new Date().toLocaleString('fr-FR');
-  const lignesTexte = items.map(it=> `- ${it.articleNom} (${[it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard'}) x${it.qte} = ${money(it.qte*it.prixVenteUnit)}`).join('\\n');
-  const message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\\n${lignesTexte}\\nTotal : ${money(total)}\\nNom : ${clientNom}\\nTéléphone : ${clientTelephone}\\n\\nJe passerai payer et récupérer en boutique. Merci !`;
+  const lignesTexte = items.map(it=> `- ${it.articleNom} (${[it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard'}) x${it.qte} = ${money(it.qte*it.prixVenteUnit)}`).join('\n');
+  let message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\n${lignesTexte}\nTotal : ${money(total)}\nNom : ${clientNom}\nTéléphone : ${clientTelephone}\n\nJe passerai payer et récupérer en boutique. Merci !`;
+  const pmTexte = paiementMobileTexte();
+  if(pmTexte){ message += `\n\n${pmTexte}`; }
   const waLink = meta.whatsapp ? `https://wa.me/${meta.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}` : null;
   return `
     <div id="printArea">
@@ -285,6 +301,7 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, total
         ${items.map(it=> `<div class="l"><span>${esc(it.articleNom)} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) ×${it.qte}</span><span>${money(it.qte*it.prixVenteUnit)}</span></div>`).join('')}
         <hr>
         <div class="l" style="font-weight:700;"><span>TOTAL À PAYER EN BOUTIQUE</span><span>${money(total)}</span></div>
+        ${paiementMobileTexte() ? `<div style="margin-top:8px;font-size:.78rem;color:var(--ink-soft);">${esc(paiementMobileTexte())}</div>` : ''}
       </div>
     </div>
     <p class="muted" style="margin-top:14px;font-size:.82rem;">Envoyez cette facture à la boutique pour réserver vos articles, puis passez payer et récupérer sur place.</p>
