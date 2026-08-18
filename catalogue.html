@@ -115,7 +115,7 @@ const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 try{ await enableIndexedDbPersistence(db); }catch(e){}
 
-window.__fb = { db, collection, doc, addDoc, getDoc };
+window.__fb = { db, collection, doc, addDoc, getDoc, onSnapshot };
 window.dispatchEvent(new Event('fb-ready'));
 </script>
 
