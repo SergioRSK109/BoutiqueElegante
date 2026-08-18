@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Gestion (interne)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF7F2;--surface:#FFFFFF;--ink:#241B2F;--ink-soft:#6b5f72;
+    --accent:#7C2D4A;--accent-light:#B85C7A;--gold:#B8923F;--danger:#A8432F;--good:#3F6B4E;--line:#E7DED2;--radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{max-width:1080px;margin:0 auto;padding:20px 16px 60px;}
+  .app-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+  .app-header .brand{display:flex;align-items:baseline;gap:10px;}
+  .app-header h1{font-size:1.5rem;font-weight:600;margin:0;}
+  .app-header .sub{color:var(--ink-soft);font-size:.8rem;}
+  #connStatus.offline{color:var(--danger);}
+  .settings-btn{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:1rem;}
+  .settings-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .tabs{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .tab-btn{background:none;border:none;cursor:pointer;padding:9px 14px;font-size:.86rem;font-weight:600;color:var(--ink-soft);border-radius:8px 8px 0 0;position:relative;top:1px;}
+  .tab-btn.active{color:var(--accent);background:var(--surface);border:1px solid var(--line);border-bottom:1px solid var(--surface);}
+  .tab-btn .count{background:var(--accent);color:#fff;border-radius:999px;font-size:.65rem;padding:1px 6px;margin-left:5px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .section-title{font-size:1.05rem;font-weight:600;margin:0 0 14px;font-family:'Fraunces',serif;}
+  .grid{display:grid;gap:14px;}
+  .grid.stats{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
+  .grid.two{grid-template-columns:1.3fr 1fr;}
+  @media (max-width:760px){.grid.two{grid-template-columns:1fr;}}
+  .tag-card{position:relative;padding:16px 16px 16px 34px;border-radius:10px 4px 4px 10px;background:var(--surface);border:1px solid var(--line);}
+  .tag-card::before{content:'';position:absolute;left:13px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--ink);}
+  .tag-card .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:6px;}
+  .tag-card .value{font-family:'IBM Plex Mono';font-size:1.5rem;font-weight:600;}
+  .tag-card .value.accent{color:var(--accent);} .tag-card .value.good{color:var(--good);} .tag-card .value.danger{color:var(--danger);}
+  .tag-card .hint{font-size:.72rem;color:var(--ink-soft);margin-top:4px;}
+  label{display:block;font-size:.76rem;font-weight:600;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text],input[type=number],input[type=tel],select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:'Inter';font-size:.9rem;color:var(--ink);}
+  input:focus,select:focus{outline:2px solid var(--accent-light);outline-offset:1px;border-color:var(--accent);}
+  .field{margin-bottom:12px;} .row{display:flex;gap:10px;} .row > .field{flex:1;}
+  button.btn{font-weight:600;font-size:.86rem;border-radius:8px;border:1px solid transparent;padding:10px 16px;cursor:pointer;font-family:'Inter';}
+  .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#671f3c;} .btn-primary:disabled{background:#c9b7bf;cursor:not-allowed;}
+  .btn-ghost{background:none;border:1px solid var(--line);color:var(--ink);} .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-danger{background:var(--danger);color:#fff;} .btn-danger:hover{background:#8a361f;}
+  .btn-good{background:var(--good);color:#fff;}
+  .btn-sm{padding:6px 10px;font-size:.76rem;}
+  .search-results{margin-top:8px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
+  .search-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .search-item:last-child{border-bottom:none;} .search-item:hover{background:var(--bg);}
+  .search-item .nom{font-weight:600;font-size:.88rem;} .search-item .meta{font-size:.72rem;color:var(--ink-soft);}
+  .search-item .prix{font-family:'IBM Plex Mono';font-size:.82rem;color:var(--accent);}
+  .selected-article{border:1px solid var(--accent-light);background:#fdf4f6;border-radius:10px;padding:14px;margin-top:10px;}
+  .selected-article .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .selected-article .top .nom{font-weight:600;font-family:'Fraunces';font-size:1.05rem;}
+  .selected-article .top button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:.78rem;text-decoration:underline;}
+  .variant-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';}
+  .chip.selected{background:var(--accent);color:#fff;border-color:var(--accent);} .chip.disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+  .qty-stepper{display:flex;align-items:center;gap:10px;}
+  .qty-stepper button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:1.1rem;cursor:pointer;}
+  .qty-stepper input{width:60px;text-align:center;font-family:'IBM Plex Mono';font-weight:600;}
+  .total-line{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:10px;border-top:1px dashed var(--line);}
+  .total-line .lbl{font-size:.82rem;color:var(--ink-soft);} .total-line .val{font-family:'IBM Plex Mono';font-weight:700;font-size:1.3rem;color:var(--accent);}
+  table{width:100%;border-collapse:collapse;font-size:.84rem;}
+  th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:8px 8px;border-bottom:1px solid var(--line);}
+  td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top;} tr:last-child td{border-bottom:none;}
+  .num{font-family:'IBM Plex Mono';text-align:right;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:600;}
+  .badge.low{background:#fbe6df;color:var(--danger);} .badge.ok{background:#e6efe9;color:var(--good);}
+  .badge.wait{background:#fbf0d9;color:var(--gold);}
+  .empty{color:var(--ink-soft);font-size:.85rem;padding:20px;text-align:center;}
+  .variant-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;} .variant-row input{flex:1;}
+  .variant-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:4px 8px;}
+  #ticket-toast{position:fixed;top:20px;right:20px;max-width:280px;background:var(--surface);border:1px dashed var(--ink);border-radius:6px;padding:14px 16px;font-family:'IBM Plex Mono';font-size:.78rem;box-shadow:0 8px 24px rgba(36,27,47,.18);transform:translateX(340px);opacity:0;transition:all .35s ease;z-index:50;}
+  #ticket-toast.show{transform:translateX(0);opacity:1;}
+  #ticket-toast .t-title{font-weight:700;margin-bottom:6px;} #ticket-toast .t-line{display:flex;justify-content:space-between;color:var(--ink-soft);} #ticket-toast hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
+  .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.4);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
+  .modal{background:var(--surface);border-radius:14px;padding:22px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;}
+  .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;margin-right:5px;}
+  .sync-dot.off{background:var(--danger);}
+  .muted{color:var(--ink-soft);font-size:.78rem;}
+  .items-mini{font-size:.78rem;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app-header">
+    <div class="brand"><h1 id="shopTitle">Atelier — Gestion</h1>
+      <span class="sub"><span class="sync-dot" id="syncDot"></span><span id="connStatus">synchronisé</span></span>
+    </div>
+    <button class="settings-btn" onclick="openSettings()" title="Réglages">⚙</button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn" data-tab="dashboard">Tableau de bord</button>
+    <button class="tab-btn" data-tab="vente">Vente</button>
+    <button class="tab-btn" data-tab="stock">Stock &amp; articles</button>
+    <button class="tab-btn" data-tab="pertes">Pertes</button>
+    <button class="tab-btn" data-tab="precommandes">Précommandes <span class="count" id="preCount" style="display:none;">0</span></button>
+    <button class="tab-btn" data-tab="historique">Historique</button>
+  </div>
+  <div id="tab-content"></div>
+</div>
+<div id="ticket-toast"></div>
+<div id="modal-root"></div>
+
+<!-- ====== FIREBASE ====== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
+  getDoc, getDocs, onSnapshot, query, orderBy, runTransaction,
+  enableIndexedDbPersistence, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* =======================================================
+   1) COLLE ICI LA CONFIGURATION DE TON PROJET FIREBASE
+   (Console Firebase > Paramètres du projet > Vos applications > Web)
+======================================================= */
+const firebaseConfig = {
+  apiKey: "COLLE_TA_CLE_ICI",
+  authDomain: "TON-PROJET.firebaseapp.com",
+  projectId: "TON-PROJET",
+  storageBucket: "TON-PROJET.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:xxxxxxxxxxxxxxxx"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+try{ await enableIndexedDbPersistence(db); }catch(e){ console.warn('Persistance hors-ligne non activée:', e.message); }
+
+window.addEventListener('online', ()=> setConnStatus(true));
+window.addEventListener('offline', ()=> setConnStatus(false));
+function setConnStatus(online){
+  document.getElementById('connStatus').textContent = online ? 'synchronisé' : 'hors-ligne — les changements seront envoyés au retour du réseau';
+  document.getElementById('connStatus').classList.toggle('offline', !online);
+  document.getElementById('syncDot').classList.toggle('off', !online);
+}
+setConnStatus(navigator.onLine);
+
+/* expose firestore helpers to the rest of the app (non-module script below) */
+window.__fb = { db, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs, onSnapshot, query, orderBy, runTransaction, serverTimestamp };
+window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<script>
+/* ---------------------------------------------------------
+   STATE
+--------------------------------------------------------- */
+let state = {
+  articles: [], ventes: [], pertes: [], precommandes: [],
+  meta: {
+    nomBoutique: 'ELEGANTE BOUTIQUE',
+    devise: '$',
+    seuil: 3,
+    vendeuses: [],
+    categories: ['Sac à main','Bijoux','Bracelet','Drap','Porte-clé','Petit Tapis','Grand Tapis','Pyjama','Parfum'],
+    whatsapp: '243071080048',
+    adresse: { province:'Nord Kivu', ville:'Goma', quartier:'Katindo', reference:'En face de la salle polyvalente Saint Cyril' }
+  },
+  tab: 'dashboard',
+  vente: { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:'' },
+  perte: { query:'', results:[], article:null, variantId:null, qte:1, raison:'Abîmé / endommagé', vendeuse:'' },
+  loaded:false
+};
+
+function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function money(n){ return (Math.round((n||0)*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+state.meta.devise; }
+function todayISO(){ return new Date().toISOString(); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
+function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ state.tab = btn.dataset.tab; render(); });
+});
+
+/* ---------------------------------------------------------
+   FIRESTORE WIRING (started once fb-ready fires)
+--------------------------------------------------------- */
+window.addEventListener('fb-ready', () => {
+  const { db, collection, doc, onSnapshot, query, orderBy, getDoc, setDoc } = window.__fb;
+
+  onSnapshot(collection(db,'articles'), snap=>{
+    state.articles = snap.docs.map(d=> ({id:d.id, ...d.data()}));
+    state.loaded = true; render();
+  }, err=> console.error('articles snapshot error', err));
+
+  onSnapshot(query(collection(db,'ventes'), orderBy('date','desc')), snap=>{
+    state.ventes = snap.docs.map(d=> ({id:d.id, ...d.data()})); render();
+  }, err=> console.error('ventes snapshot error', err));
+
+  onSnapshot(query(collection(db,'pertes'), orderBy('date','desc')), snap=>{
+    state.pertes = snap.docs.map(d=> ({id:d.id, ...d.data()})); render();
+  }, err=> console.error('pertes snapshot error', err));
+
+  onSnapshot(query(collection(db,'precommandes'), orderBy('date','desc')), snap=>{
+    state.precommandes = snap.docs.map(d=> ({id:d.id, ...d.data()})); render();
+  }, err=> console.error('precommandes snapshot error', err));
+
+  getDoc(doc(db,'meta','config')).then(d=>{
+    if(d.exists()){
+      state.meta = Object.assign(state.meta, d.data());
+      document.getElementById('shopTitle').textContent = state.meta.nomBoutique || 'Atelier — Gestion';
+    } else {
+      setDoc(doc(db,'meta','config'), state.meta);
+    }
+    render();
+  });
+  onSnapshot(doc(db,'meta','config'), d=>{
+    if(d.exists()){ state.meta = Object.assign(state.meta, d.data()); document.getElementById('shopTitle').textContent = state.meta.nomBoutique || 'Atelier — Gestion'; render(); }
+  });
+});
+
+/* ---------------------------------------------------------
+   RENDER ROUTER
+--------------------------------------------------------- */
+function render(){
+  document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===state.tab));
+  const nbEnAttente = state.precommandes.filter(p=> p.statut==='non_payé').length;
+  const badge = document.getElementById('preCount');
+  badge.style.display = nbEnAttente>0 ? 'inline-block':'none';
+  badge.textContent = nbEnAttente;
+
+  const el = document.getElementById('tab-content');
+  if(!state.loaded){ el.innerHTML = '<div class="empty">Connexion à la base de données…</div>'; return; }
+  if(state.tab==='dashboard') el.innerHTML = renderDashboard();
+  else if(state.tab==='vente') el.innerHTML = renderVente();
+  else if(state.tab==='stock') el.innerHTML = renderStock();
+  else if(state.tab==='pertes') el.innerHTML = renderPertes();
+  else if(state.tab==='precommandes') el.innerHTML = renderPrecommandes();
+  else if(state.tab==='historique') el.innerHTML = renderHistorique();
+}
+
+/* ---------------------------------------------------------
+   DASHBOARD
+--------------------------------------------------------- */
+function computeStats(){
+  let valeurAchat=0, valeurVente=0, stockUnits=0; const lowStock=[];
+  state.articles.forEach(a=> (a.variants||[]).forEach(v=>{
+    valeurAchat += (v.stock||0)*(a.prixAchat||0);
+    valeurVente += (v.stock||0)*(a.prixVente||0);
+    stockUnits += (v.stock||0);
+    if((v.stock||0) <= state.meta.seuil) lowStock.push({article:a, variant:v});
+  }));
+  const ca = state.ventes.reduce((s,v)=> s+(v.total||0),0);
+  const profit = state.ventes.reduce((s,v)=> s+(v.profit||0),0);
+  const pertesValeur = state.pertes.reduce((s,p)=> s+(p.qte||0)*(p.prixAchatUnit||0),0);
+  const today = new Date().toDateString();
+  const ventesJour = state.ventes.filter(v=> v.date && new Date(v.date).toDateString()===today);
+  const caJour = ventesJour.reduce((s,v)=> s+(v.total||0),0);
+  const enAttente = state.precommandes.filter(p=> p.statut==='non_payé');
+  return { valeurAchat, valeurVente, stockUnits, lowStock, ca, profit, pertesValeur, ventesJour, caJour, enAttente };
+}
+
+function renderDashboard(){
+  const s = computeStats();
+  const beneficeNet = s.profit - s.pertesValeur;
+  const qtyByArticle = {};
+  state.ventes.forEach(v=> qtyByArticle[v.articleNom] = (qtyByArticle[v.articleNom]||0)+v.qte);
+  const top = Object.entries(qtyByArticle).sort((a,b)=> b[1]-a[1]).slice(0,5);
+  const maxQty = top.length? top[0][1]:1;
+  const activite = [
+    ...state.ventes.map(v=>({...v,type:'vente'})),
+    ...state.pertes.map(p=>({...p,type:'perte'}))
+  ].sort((a,b)=> new Date(b.date)-new Date(a.date)).slice(0,8);
+
+  return `
+    <div class="grid stats" style="margin-bottom:16px;">
+      <div class="tag-card"><div class="label">Valeur du stock (achat)</div><div class="value">${money(s.valeurAchat)}</div><div class="hint">${s.stockUnits} unités en boutique</div></div>
+      <div class="tag-card"><div class="label">Valeur du stock (vente)</div><div class="value">${money(s.valeurVente)}</div><div class="hint">potentiel si tout est vendu</div></div>
+      <div class="tag-card"><div class="label">Chiffre d'affaires total</div><div class="value accent">${money(s.ca)}</div><div class="hint">${state.ventes.length} ventes enregistrées</div></div>
+      <div class="tag-card"><div class="label">Bénéfice net</div><div class="value ${beneficeNet>=0?'good':'danger'}">${money(beneficeNet)}</div><div class="hint">ventes − coût des pertes</div></div>
+      <div class="tag-card"><div class="label">Pertes (valeur)</div><div class="value danger">${money(s.pertesValeur)}</div><div class="hint">${state.pertes.length} déclarations</div></div>
+      <div class="tag-card"><div class="label">Précommandes en attente</div><div class="value ${s.enAttente.length?'danger':'good'}">${s.enAttente.length}</div><div class="hint">à traiter dans l'onglet dédié</div></div>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Stock faible</div><span class="muted">seuil : ${state.meta.seuil}</span></div>
+        ${s.lowStock.length===0? '<div class="empty">Aucun article en stock faible.</div>' : `
+          <table><thead><tr><th>Article</th><th>Variante</th><th class="num">Stock</th></tr></thead><tbody>
+            ${s.lowStock.slice(0,8).map(x=>`<tr><td>${esc(x.article.nom)}</td><td>${esc(variantLabel(x.variant))}</td><td class="num"><span class="badge low">${x.variant.stock}</span></td></tr>`).join('')}
+          </tbody></table>
+        `}
+      </div>
+      <div class="card">
+        <div class="section-title">Articles les plus vendus</div>
+        ${top.length===0? '<div class="empty">Pas encore de ventes.</div>' : top.map(([nom,qty])=>`
+          <div style="margin-bottom:10px;"><div class="flex-between" style="margin-bottom:4px;"><span style="font-size:.82rem;font-weight:600;">${esc(nom)}</span><span class="mono muted">${qty}</span></div>
+          <div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden;"><div style="background:var(--accent);height:100%;width:${(qty/maxQty)*100}%;"></div></div></div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="section-title">Activité récente</div>
+      ${activite.length===0? '<div class="empty">Aucune activité pour le moment.</div>' : `
+        <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th class="num">Qté</th><th class="num">Montant</th></tr></thead><tbody>
+          ${activite.map(a=>`<tr><td class="mono muted">${fmtDate(a.date)}</td><td>${a.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
+            <td>${esc(a.articleNom)}${a.taille||a.couleur?' <span class="muted">('+esc([a.taille,a.couleur].filter(Boolean).join(' / '))+')</span>':''}</td>
+            <td class="num mono">${a.qte}</td><td class="num mono">${a.type==='vente'? money(a.total) : '−'+money(a.qte*(a.prixAchatUnit||0))}</td></tr>`).join('')}
+        </tbody></table>
+      `}
+    </div>
+  `;
+}
+
+/* ---------------------------------------------------------
+   VENTE
+--------------------------------------------------------- */
+function renderVente(){
+  const v = state.vente;
+  return `
+    <div class="card" style="max-width:560px;margin:0 auto;">
+      <div class="section-title">Nouvelle vente</div>
+      ${!v.article? `
+        <div class="field"><label>Rechercher un article</label>
+          <input type="text" id="venteSearch" placeholder="Tape le nom de l'article…" value="${esc(v.query)}" oninput="onSearch('vente',this.value)" autofocus></div>
+        <div class="search-results" id="venteResults">${renderSearchResults(v.results,'vente')}</div>
+      ` : `
+        <div class="selected-article">
+          <div class="top"><span class="nom">${esc(v.article.nom)}</span><button onclick="resetSelection('vente')">changer d'article</button></div>
+          <div class="muted" style="margin-bottom:10px;">Achat ${money(v.article.prixAchat)} · Vente ${money(v.article.prixVente)}</div>
+          <label>Variante</label>
+          <div class="variant-chips">
+            ${(v.article.variants||[]).map(vr=>{
+              const disabled=(vr.stock||0)<=0, selected=v.variantId===vr.id;
+              return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('vente','${vr.id}')">${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+            }).join('') || '<span class="muted">Aucune variante définie.</span>'}
+          </div>
+          ${v.variantId? renderQtyAndSubmit('vente'):''}
+        </div>
+      `}
+    </div>
+  `;
+}
+function renderQtyAndSubmit(ctx){
+  const v = state[ctx];
+  const variant = (v.article.variants||[]).find(x=> x.id===v.variantId);
+  const maxQ = variant? variant.stock:1;
+  const total = v.qte * v.article.prixVente;
+  return `
+    <div class="field" style="margin-top:12px;"><label>Quantité</label>
+      <div class="qty-stepper"><button onclick="changeQty('${ctx}',-1)">−</button>
+        <input type="number" value="${v.qte}" min="1" max="${maxQ}" oninput="setQty('${ctx}',this.value,${maxQ})">
+        <button onclick="changeQty('${ctx}',1)">+</button><span class="muted">/ ${maxQ} en stock</span></div></div>
+    <div class="field"><label>Vendeuse</label>
+      <input type="text" list="vendeusesList" placeholder="Nom de la vendeuse" value="${esc(v.vendeuse)}" oninput="state.${ctx}.vendeuse=this.value">
+      <datalist id="vendeusesList">${state.meta.vendeuses.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
+    <div class="total-line"><span class="lbl">Total à encaisser</span><span class="val">${money(total)}</span></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="submitVente()" ${v.qte<1||v.qte>maxQ?'disabled':''}>Enregistrer la vente</button>
+  `;
+}
+function renderSearchResults(results, ctx){
+  if(!results.length) return '';
+  return results.map(a=>{
+    const totalStock=(a.variants||[]).reduce((s,vr)=> s+(vr.stock||0),0);
+    return `<div class="search-item" onclick="selectArticle('${ctx}','${a.id}')">
+      <div><div class="nom">${esc(a.nom)}</div><div class="meta">${esc(a.categorie||'—')} · stock total ${totalStock}</div></div>
+      <div class="prix">${money(a.prixVente)}</div></div>`;
+  }).join('');
+}
+function onSearch(ctx, q){
+  state[ctx].query = q;
+  state[ctx].results = q.trim().length===0? [] : state.articles.filter(a=> a.nom.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  const box = document.getElementById(ctx+'Results'); if(box) box.innerHTML = renderSearchResults(state[ctx].results, ctx);
+}
+function selectArticle(ctx,id){ state[ctx].article = state.articles.find(x=>x.id===id); state[ctx].variantId=null; state[ctx].qte=1; render(); }
+function selectVariant(ctx,variantId){ const variant=state[ctx].article.variants.find(v=>v.id===variantId); if((variant.stock||0)<=0) return; state[ctx].variantId=variantId; state[ctx].qte=1; render(); }
+function resetSelection(ctx){ state[ctx].article=null; state[ctx].variantId=null; state[ctx].qte=1; state[ctx].query=''; state[ctx].results=[]; render(); }
+function changeQty(ctx,delta){ const variant=state[ctx].article.variants.find(v=>v.id===state[ctx].variantId); const max=variant?variant.stock:1; let q=state[ctx].qte+delta; if(q<1)q=1; if(q>max)q=max; state[ctx].qte=q; render(); }
+function setQty(ctx,val,max){ let q=parseInt(val,10); if(isNaN(q)||q<1)q=1; if(q>max)q=max; state[ctx].qte=q; render(); }
+
+async function submitVente(){
+  const v = state.vente; if(!v.article||!v.variantId) return;
+  const { db, doc, runTransaction, collection, serverTimestamp } = window.__fb;
+  try{
+    await runTransaction(db, async (tx)=>{
+      const artRef = doc(db,'articles', v.article.id);
+      const artSnap = await tx.get(artRef);
+      if(!artSnap.exists()) throw new Error('Article introuvable.');
+      const art = artSnap.data();
+      const variants = art.variants.map(vr=> vr.id===v.variantId ? {...vr} : vr);
+      const variant = variants.find(vr=> vr.id===v.variantId);
+      if(!variant || variant.stock < v.qte) throw new Error('Stock insuffisant (peut-être vendu entre-temps).');
+      variant.stock -= v.qte;
+      tx.update(artRef, { variants });
+      const venteRef = doc(collection(db,'ventes'));
+      const total = v.qte*art.prixVente, profit = v.qte*(art.prixVente-art.prixAchat);
+      tx.set(venteRef, {
+        date: new Date().toISOString(), articleId: v.article.id, articleNom: art.nom,
+        variantId: v.variantId, taille: variant.taille||'', couleur: variant.couleur||'',
+        qte: v.qte, prixVenteUnit: art.prixVente, prixAchatUnit: art.prixAchat,
+        total, profit, vendeuse: v.vendeuse||'', source:'boutique'
+      });
+    });
+    if(v.vendeuse && !state.meta.vendeuses.includes(v.vendeuse)){
+      state.meta.vendeuses.push(v.vendeuse);
+      const { db, doc, setDoc } = window.__fb;
+      await setDoc(doc(db,'meta','config'), state.meta);
+    }
+    showTicket({title:'VENTE ENREGISTRÉE', lines:[[v.article.nom,''],[variantLabel(v.article.variants.find(x=>x.id===v.variantId)),'x'+v.qte],['Total', money(v.qte*v.article.prixVente)]]});
+    const keep = v.vendeuse;
+    state.vente = { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:keep };
+    render();
+  }catch(e){ alert(e.message || 'Erreur lors de la vente.'); }
+}
+
+/* ---------------------------------------------------------
+   PERTES
+--------------------------------------------------------- */
+const RAISONS_PERTE = ['Abîmé / endommagé','Vol','Erreur de stock','Retour fournisseur','Autre'];
+function renderPertes(){
+  const p = state.perte;
+  return `
+    <div class="card" style="max-width:560px;margin:0 auto;">
+      <div class="section-title">Déclarer une perte</div>
+      ${!p.article? `
+        <div class="field"><label>Rechercher un article</label>
+          <input type="text" placeholder="Tape le nom de l'article…" value="${esc(p.query)}" oninput="onSearch('perte',this.value)" autofocus></div>
+        <div class="search-results" id="perteResults">${renderSearchResults(p.results,'perte')}</div>
+      ` : `
+        <div class="selected-article">
+          <div class="top"><span class="nom">${esc(p.article.nom)}</span><button onclick="resetSelection('perte')">changer d'article</button></div>
+          <label>Variante</label>
+          <div class="variant-chips">
+            ${(p.article.variants||[]).map(vr=>{
+              const disabled=(vr.stock||0)<=0, selected=p.variantId===vr.id;
+              return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('perte','${vr.id}')">${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+            }).join('') || '<span class="muted">Aucune variante définie.</span>'}
+          </div>
+          ${p.variantId? renderPerteQtyAndSubmit():''}
+        </div>
+      `}
+    </div>
+  `;
+}
+function renderPerteQtyAndSubmit(){
+  const p = state.perte;
+  const variant = (p.article.variants||[]).find(x=>x.id===p.variantId);
+  const maxQ = variant? variant.stock:1;
+  return `
+    <div class="field" style="margin-top:12px;"><label>Quantité</label>
+      <div class="qty-stepper"><button onclick="changeQty('perte',-1)">−</button>
+        <input type="number" value="${p.qte}" min="1" max="${maxQ}" oninput="setQty('perte',this.value,${maxQ})">
+        <button onclick="changeQty('perte',1)">+</button><span class="muted">/ ${maxQ} en stock</span></div></div>
+    <div class="field"><label>Raison</label><select onchange="state.perte.raison=this.value">
+      ${RAISONS_PERTE.map(r=>`<option value="${r}" ${state.perte.raison===r?'selected':''}>${r}</option>`).join('')}
+    </select></div>
+    <div class="field"><label>Déclarée par (optionnel)</label>
+      <input type="text" list="vendeusesList" placeholder="Nom" value="${esc(p.vendeuse)}" oninput="state.perte.vendeuse=this.value"></div>
+    <div class="total-line"><span class="lbl">Coût de la perte</span><span class="val" style="color:var(--danger);">${money(p.qte*p.article.prixAchat)}</span></div>
+    <button class="btn btn-danger" style="width:100%;margin-top:14px;" onclick="submitPerte()">Déclarer la perte</button>
+  `;
+}
+async function submitPerte(){
+  const p = state.perte; if(!p.article||!p.variantId) return;
+  const { db, doc, runTransaction, collection } = window.__fb;
+  try{
+    await runTransaction(db, async (tx)=>{
+      const artRef = doc(db,'articles', p.article.id);
+      const artSnap = await tx.get(artRef);
+      if(!artSnap.exists()) throw new Error('Article introuvable.');
+      const art = artSnap.data();
+      const variants = art.variants.map(vr=> vr.id===p.variantId? {...vr}:vr);
+      const variant = variants.find(vr=> vr.id===p.variantId);
+      if(!variant || variant.stock < p.qte) throw new Error('Stock insuffisant.');
+      variant.stock -= p.qte;
+      tx.update(artRef, { variants });
+      const perteRef = doc(collection(db,'pertes'));
+      tx.set(perteRef, {
+        date: new Date().toISOString(), articleId: p.article.id, articleNom: art.nom,
+        variantId: p.variantId, taille: variant.taille||'', couleur: variant.couleur||'',
+        qte: p.qte, prixAchatUnit: art.prixAchat, raison: p.raison, vendeuse: p.vendeuse||''
+      });
+    });
+    showTicket({title:'PERTE DÉCLARÉE', lines:[[p.article.nom,''],['Quantité','x'+p.qte],[p.raison,'']]});
+    state.perte = { query:'', results:[], article:null, variantId:null, qte:1, raison:'Abîmé / endommagé', vendeuse:'' };
+    render();
+  }catch(e){ alert(e.message || 'Erreur lors de la déclaration.'); }
+}
+
+/* ---------------------------------------------------------
+   STOCK / ARTICLES
+--------------------------------------------------------- */
+let articleFormDraft = null;
+function renderStock(){
+  const rows = state.articles.map(a=>{
+    const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
+    const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
+    return `<tr><td>${esc(a.nom)}</td><td class="muted">${esc(a.categorie||'—')}</td><td class="num mono">${money(a.prixAchat)}</td><td class="num mono">${money(a.prixVente)}</td>
+      <td class="num">${(a.variants||[]).length}</td><td class="num">${low?`<span class="badge low">${totalStock}</span>`:`<span class="badge ok">${totalStock}</span>`}</td>
+      <td class="num"><button class="btn btn-ghost btn-sm" onclick="editArticle('${a.id}')">Modifier</button></td></tr>`;
+  }).join('');
+  return `
+    <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${state.articles.length})</div>
+      <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
+    <div class="card">${state.articles.length===0? '<div class="empty">Aucun article. Ajoute ton premier article.</div>' : `
+      <table><thead><tr><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table>`}</div>
+  `;
+}
+function editArticle(id){
+  const existing = id? state.articles.find(a=>a.id===id):null;
+  articleFormDraft = existing? JSON.parse(JSON.stringify(existing)) : { id:null, nom:'', categorie:'', prixAchat:0, prixVente:0, variants:[{id:uid('vr'),taille:'',couleur:'',stock:0}] };
+  openModal(renderArticleModal());
+}
+function renderArticleModal(){
+  const d = articleFormDraft;
+  return `
+    <h3>${d.id? "Modifier l'article" : 'Nouvel article'}</h3>
+    <div class="field"><label>Nom de l'article</label><input type="text" id="f_nom" value="${esc(d.nom)}" placeholder="Ex : Robe fleurie"></div>
+    <div class="field"><label>Catégorie</label><input type="text" list="catList" id="f_cat" value="${esc(d.categorie)}" placeholder="Ex : Robes">
+      <datalist id="catList">${state.meta.categories.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+    <div class="row"><div class="field"><label>Prix d'achat</label><input type="number" id="f_achat" value="${d.prixAchat}" min="0" step="0.01"></div>
+      <div class="field"><label>Prix de vente</label><input type="number" id="f_vente" value="${d.prixVente}" min="0" step="0.01"></div></div>
+    <label style="margin-top:6px;">Variantes (taille / couleur / stock)</label>
+    <div id="variantsWrap">${d.variants.map(v=>renderVariantRow(v)).join('')}</div>
+    <button class="btn btn-ghost btn-sm" onclick="addVariantRow()">+ Ajouter une variante</button>
+    <div class="modal-actions">
+      ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">Supprimer</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveArticleForm()">Enregistrer</button>
+    </div>
+  `;
+}
+function renderVariantRow(v){
+  return `<div class="variant-row" data-vid="${v.id}">
+    <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille">
+    <input type="text" placeholder="Couleur" value="${esc(v.couleur)}" data-field="couleur">
+    <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
+    <button class="rm" onclick="removeVariantRow('${v.id}')">✕</button></div>`;
+}
+function addVariantRow(){ articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0}); syncModal(); }
+function removeVariantRow(vid){ if(articleFormDraft.variants.length<=1) return; articleFormDraft.variants = articleFormDraft.variants.filter(v=>v.id!==vid); syncModal(); }
+function syncModal(){ document.getElementById('modal-root').querySelector('.modal').innerHTML = renderArticleModal(); }
+
+async function saveArticleForm(){
+  const nom = document.getElementById('f_nom').value.trim();
+  if(!nom){ alert('Le nom est obligatoire.'); return; }
+  const categorie = document.getElementById('f_cat').value.trim();
+  const prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
+  const prixVente = parseFloat(document.getElementById('f_vente').value)||0;
+  const variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>({
+    id: row.dataset.vid,
+    taille: row.querySelector('[data-field=taille]').value.trim(),
+    couleur: row.querySelector('[data-field=couleur]').value.trim(),
+    stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
+  }));
+  const { db, doc, setDoc, addDoc, collection } = window.__fb;
+  const record = { nom, categorie, prixAchat, prixVente, variants };
+  if(articleFormDraft.id){ await setDoc(doc(db,'articles',articleFormDraft.id), record); }
+  else{ await addDoc(collection(db,'articles'), record); }
+  if(categorie && !state.meta.categories.includes(categorie)){
+    state.meta.categories.push(categorie);
+    await setDoc(doc(db,'meta','config'), state.meta);
+  }
+  closeModal(); render();
+}
+async function deleteArticle(id){
+  if(!confirm('Supprimer définitivement cet article ?')) return;
+  const { db, doc, deleteDoc } = window.__fb;
+  await deleteDoc(doc(db,'articles',id));
+  closeModal(); render();
+}
+
+/* ---------------------------------------------------------
+   PRÉCOMMANDES
+--------------------------------------------------------- */
+function renderPrecommandes(){
+  const list = [...state.precommandes].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  if(list.length===0) return '<div class="card"><div class="empty">Aucune précommande pour le moment. Les commandes passées depuis le catalogue client apparaîtront ici.</div></div>';
+  return `
+    <div class="section-title">Précommandes (${list.length})</div>
+    <div class="grid" style="gap:12px;">
+      ${list.map(p=> renderPrecommandeCard(p)).join('')}
+    </div>
+  `;
+}
+function renderPrecommandeCard(p){
+  const statutBadge = p.statut==='payé' ? '<span class="badge ok">Payé</span>' : p.statut==='annulé' ? '<span class="badge low">Annulé</span>' : '<span class="badge wait">Non payé</span>';
+  return `
+    <div class="card">
+      <div class="flex-between" style="margin-bottom:8px;">
+        <div><strong>${esc(p.clientNom||'Client')}</strong> <span class="muted">· ${esc(p.clientTelephone||'')}</span></div>
+        <div>${statutBadge}</div>
+      </div>
+      <div class="muted mono" style="margin-bottom:8px;">${fmtDate(p.date)} · commande #${esc(p.id.slice(0,6))}</div>
+      <div class="items-mini">
+        ${(p.items||[]).map(it=> `${esc(it.articleNom)} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) × ${it.qte}`).join('<br>')}
+      </div>
+      <div class="total-line"><span class="lbl">Total</span><span class="val">${money(p.total)}</span></div>
+      ${p.statut==='non_payé' ? `
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-good" style="flex:1;" onclick="marquerPayee('${p.id}')">✓ Marquer payé (déduit le stock)</button>
+          <button class="btn btn-ghost" onclick="annulerPrecommande('${p.id}')">Annuler</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+async function marquerPayee(id){
+  const { db, doc, runTransaction, collection } = window.__fb;
+  try{
+    await runTransaction(db, async (tx)=>{
+      const preRef = doc(db,'precommandes', id);
+      const preSnap = await tx.get(preRef);
+      if(!preSnap.exists()) throw new Error('Précommande introuvable.');
+      const pre = preSnap.data();
+      if(pre.statut !== 'non_payé') throw new Error('Cette précommande a déjà été traitée.');
+
+      // lire tous les articles concernés d'abord (Firestore exige les lectures avant les écritures)
+      const artRefs = {};
+      const artData = {};
+      for(const it of pre.items){
+        if(!artRefs[it.articleId]){
+          artRefs[it.articleId] = doc(db,'articles', it.articleId);
+          const s = await tx.get(artRefs[it.articleId]);
+          if(!s.exists()) throw new Error("Un article de la commande n'existe plus.");
+          artData[it.articleId] = s.data();
+        }
+      }
+      // vérifier stock suffisant pour chaque ligne
+      const workingVariants = {};
+      for(const it of pre.items){
+        const art = artData[it.articleId];
+        if(!workingVariants[it.articleId]) workingVariants[it.articleId] = art.variants.map(v=>({...v}));
+        const variant = workingVariants[it.articleId].find(v=> v.id===it.variantId);
+        if(!variant || variant.stock < it.qte) throw new Error('Stock insuffisant pour '+it.articleNom+' — ajuste avant de valider.');
+        variant.stock -= it.qte;
+      }
+      // écrire les mises à jour de stock
+      for(const artId in workingVariants){
+        tx.update(artRefs[artId], { variants: workingVariants[artId] });
+      }
+      // créer les ventes correspondantes
+      for(const it of pre.items){
+        const art = artData[it.articleId];
+        const venteRef = doc(collection(db,'ventes'));
+        const total = it.qte*it.prixVenteUnit, profit = it.qte*(it.prixVenteUnit-art.prixAchat);
+        tx.set(venteRef, {
+          date: new Date().toISOString(), articleId: it.articleId, articleNom: it.articleNom,
+          variantId: it.variantId, taille: it.taille||'', couleur: it.couleur||'',
+          qte: it.qte, prixVenteUnit: it.prixVenteUnit, prixAchatUnit: art.prixAchat,
+          total, profit, vendeuse: pre.clientNom ? 'Précommande — '+pre.clientNom : 'Précommande', source: 'precommande'
+        });
+      }
+      tx.update(preRef, { statut:'payé', datePaiement: new Date().toISOString() });
+    });
+    showTicket({title:'PRÉCOMMANDE PAYÉE', lines:[['Stock mis à jour',''],['Vente enregistrée','✓']]});
+    render();
+  }catch(e){ alert(e.message || 'Erreur lors du traitement.'); }
+}
+async function annulerPrecommande(id){
+  if(!confirm('Annuler cette précommande ? (aucun impact sur le stock)')) return;
+  const { db, doc, updateDoc } = window.__fb;
+  await updateDoc(doc(db,'precommandes', id), { statut:'annulé' });
+  render();
+}
+
+/* ---------------------------------------------------------
+   HISTORIQUE
+--------------------------------------------------------- */
+let histFilter = 'toutes';
+function renderHistorique(){
+  let items = [...state.ventes.map(v=>({...v,type:'vente'})), ...state.pertes.map(p=>({...p,type:'perte'}))].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  if(histFilter==='ventes') items = items.filter(i=>i.type==='vente');
+  if(histFilter==='pertes') items = items.filter(i=>i.type==='perte');
+  const totalCA = state.ventes.reduce((s,v)=>s+(v.total||0),0);
+  const totalPerte = state.pertes.reduce((s,p)=>s+(p.qte*(p.prixAchatUnit||0)),0);
+  return `
+    <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Historique</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm ${histFilter==='toutes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('toutes')">Toutes</button>
+        <button class="btn btn-sm ${histFilter==='ventes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('ventes')">Ventes</button>
+        <button class="btn btn-sm ${histFilter==='pertes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('pertes')">Pertes</button>
+      </div></div>
+    <div class="muted" style="margin-bottom:10px;">Total ventes : <strong>${money(totalCA)}</strong> · Total pertes : <strong style="color:var(--danger)">${money(totalPerte)}</strong></div>
+    <div class="card">${items.length===0? '<div class="empty">Rien à afficher.</div>' : `
+      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th></tr></thead>
+      <tbody>${items.map(i=>`<tr><td class="mono muted">${fmtDate(i.date)}</td><td>${i.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
+        <td>${esc(i.articleNom)}</td><td class="muted">${esc([i.taille,i.couleur].filter(Boolean).join(' / ')||'—')}</td><td class="num mono">${i.qte}</td>
+        <td class="num mono">${i.type==='vente'? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0))}</td>
+        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td></tr>`).join('')}</tbody></table>`}</div>
+  `;
+}
+function setHistFilter(f){ histFilter=f; render(); }
+
+/* ---------------------------------------------------------
+   SETTINGS
+--------------------------------------------------------- */
+function openSettings(){
+  openModal(`
+    <h3>Réglages</h3>
+    <div class="field"><label>Nom de la boutique</label><input type="text" id="s_titre" value="${esc(state.meta.nomBoutique||document.getElementById('shopTitle').textContent)}"></div>
+    <div class="row"><div class="field"><label>Devise</label><input type="text" id="s_devise" value="${esc(state.meta.devise)}" maxlength="4"></div>
+      <div class="field"><label>Seuil stock faible</label><input type="number" id="s_seuil" value="${state.meta.seuil}" min="0"></div></div>
+    <div class="field"><label>Numéro WhatsApp de la boutique (avec indicatif pays, sans le +, ex : 243071080048)</label>
+      <input type="tel" id="s_whatsapp" value="${esc(state.meta.whatsapp||'')}" placeholder="243071080048"></div>
+    <div class="muted" style="margin-bottom:14px;">Ce numéro sera utilisé par le catalogue client pour envoyer les précommandes.</div>
+    <label style="margin-top:6px;">Adresse de retrait (affichée sur le catalogue client)</label>
+    <div class="row"><div class="field"><label>Province</label><input type="text" id="s_province" value="${esc((state.meta.adresse&&state.meta.adresse.province)||'')}"></div>
+      <div class="field"><label>Ville</label><input type="text" id="s_ville" value="${esc((state.meta.adresse&&state.meta.adresse.ville)||'')}"></div></div>
+    <div class="field"><label>Quartier</label><input type="text" id="s_quartier" value="${esc((state.meta.adresse&&state.meta.adresse.quartier)||'')}"></div>
+    <div class="field"><label>Point de repère</label><input type="text" id="s_reference" value="${esc((state.meta.adresse&&state.meta.adresse.reference)||'')}" placeholder="Ex : En face de..."></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button></div>
+  `);
+}
+async function saveSettings(){
+  const nomBoutique = document.getElementById('s_titre').value.trim() || 'Atelier — Gestion';
+  state.meta.nomBoutique = nomBoutique;
+  state.meta.devise = document.getElementById('s_devise').value.trim() || '€';
+  state.meta.seuil = parseInt(document.getElementById('s_seuil').value,10) || 0;
+  state.meta.whatsapp = document.getElementById('s_whatsapp').value.trim();
+  state.meta.adresse = {
+    province: document.getElementById('s_province').value.trim(),
+    ville: document.getElementById('s_ville').value.trim(),
+    quartier: document.getElementById('s_quartier').value.trim(),
+    reference: document.getElementById('s_reference').value.trim()
+  };
+  const { db, doc, setDoc } = window.__fb;
+  await setDoc(doc(db,'meta','config'), state.meta);
+  document.getElementById('shopTitle').textContent = nomBoutique;
+  closeModal(); render();
+}
+
+/* ---------------------------------------------------------
+   MODAL + TOAST
+--------------------------------------------------------- */
+function openModal(html){ document.getElementById('modal-root').innerHTML = `<div class="modal-bg" onclick="if(event.target===this) closeModal()"><div class="modal">${html}</div></div>`; }
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+let ticketTimer=null;
+function showTicket({title,lines}){
+  const el = document.getElementById('ticket-toast');
+  el.innerHTML = `<div class="t-title">${esc(title)}</div><hr>` + lines.map(l=>`<div class="t-line"><span>${esc(l[0])}</span><span>${esc(l[1])}</span></div>`).join('') + `<hr><div class="t-line"><span>${new Date().toLocaleTimeString('fr-FR')}</span><span>merci !</span></div>`;
+  el.classList.add('show'); clearTimeout(ticketTimer); ticketTimer=setTimeout(()=> el.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>

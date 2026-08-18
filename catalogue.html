@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boutique — Catalogue &amp; précommande</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF7F2;--surface:#FFFFFF;--ink:#241B2F;--ink-soft:#6b5f72;
+    --accent:#7C2D4A;--accent-light:#B85C7A;--gold:#B8923F;--danger:#A8432F;--good:#3F6B4E;--line:#E7DED2;--radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{max-width:720px;margin:0 auto;padding:20px 16px 100px;}
+  header{text-align:center;margin-bottom:22px;}
+  header h1{font-size:1.6rem;margin:0 0 4px;}
+  header p{color:var(--ink-soft);font-size:.85rem;margin:0;}
+  .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;}
+  .cat-chip{white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:.82rem;cursor:pointer;}
+  .cat-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .grid-articles{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+  .article-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .15s;}
+  .article-card:hover{border-color:var(--accent-light);}
+  .article-card .nom{font-family:'Fraunces';font-weight:600;font-size:1.05rem;margin-bottom:4px;}
+  .article-card .cat{color:var(--ink-soft);font-size:.76rem;margin-bottom:8px;}
+  .article-card .prix{font-family:'IBM Plex Mono';font-weight:700;color:var(--accent);font-size:1.05rem;}
+  .article-card .stock-note{font-size:.72rem;color:var(--ink-soft);margin-top:4px;}
+  .empty{color:var(--ink-soft);font-size:.85rem;padding:30px;text-align:center;}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
+  .modal{background:var(--surface);border-radius:14px;padding:22px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;}
+  .modal h3{margin-top:0;}
+  .variant-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+  .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';}
+  .chip.selected{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+  .qty-stepper{display:flex;align-items:center;gap:10px;}
+  .qty-stepper button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:1.1rem;cursor:pointer;}
+  .qty-stepper input{width:60px;text-align:center;font-family:'IBM Plex Mono';font-weight:600;border:1px solid var(--line);border-radius:8px;padding:6px;}
+  label{display:block;font-size:.76rem;font-weight:600;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+  input[type=text],input[type=tel]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:'Inter';font-size:.9rem;color:var(--ink);}
+  .field{margin-bottom:12px;}
+  button.btn{font-weight:600;font-size:.86rem;border-radius:8px;border:1px solid transparent;padding:10px 16px;cursor:pointer;font-family:'Inter';}
+  .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#671f3c;} .btn-primary:disabled{background:#c9b7bf;cursor:not-allowed;}
+  .btn-ghost{background:none;border:1px solid var(--line);color:var(--ink);} .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-whatsapp{background:#25D366;color:#fff;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+
+  /* panier flottant */
+  #panierBar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;padding:14px 18px;display:none;align-items:center;justify-content:space-between;z-index:40;}
+  #panierBar.show{display:flex;}
+  #panierBar .info{font-size:.86rem;}
+  #panierBar .info .mono{color:var(--gold);font-weight:700;}
+  #panierBar button{background:#fff;color:var(--ink);border:none;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;}
+
+  /* panier modal */
+  .panier-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+  .panier-item:last-child{border-bottom:none;}
+  .panier-item .d{font-size:.85rem;} .panier-item .d .sub{color:var(--ink-soft);font-size:.74rem;}
+  .panier-item .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;}
+  .total-line{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:10px;border-top:1px dashed var(--line);}
+  .total-line .val{font-family:'IBM Plex Mono';font-weight:700;font-size:1.3rem;color:var(--accent);}
+
+  /* facture / invoice */
+  .facture{font-family:'IBM Plex Mono',monospace;font-size:.86rem;border:1px dashed var(--ink);border-radius:8px;padding:18px;}
+  .facture h3{font-family:'IBM Plex Mono';margin:0 0 4px;}
+  .facture hr{border:none;border-top:1px dashed var(--line);margin:10px 0;}
+  .facture .l{display:flex;justify-content:space-between;margin-bottom:4px;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{position:absolute;top:0;left:0;width:100%;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 id="shopTitle">Boutique</h1>
+    <p>Parcourez, choisissez taille et couleur, réservez — vous payez en boutique.</p>
+    <p id="shopAddress" class="mono" style="font-size:.76rem;color:var(--ink-soft);margin-top:6px;"></p>
+  </header>
+  <div class="cat-tabs" id="catTabs"></div>
+  <div class="grid-articles" id="grid"></div>
+</div>
+
+<div id="panierBar">
+  <div class="info"><span id="panierCount">0</span> article(s) · <span class="mono" id="panierTotal">0</span></div>
+  <button onclick="openPanier()">Voir le panier</button>
+</div>
+
+<div id="modal-root"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* =======================================================
+   COLLE ICI LA MÊME CONFIGURATION FIREBASE QUE DANS interne.html
+======================================================= */
+const firebaseConfig = {
+  apiKey: "COLLE_TA_CLE_ICI",
+  authDomain: "TON-PROJET.firebaseapp.com",
+  projectId: "TON-PROJET",
+  storageBucket: "TON-PROJET.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:xxxxxxxxxxxxxxxx"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+try{ await enableIndexedDbPersistence(db); }catch(e){}
+
+window.__fb = { db, collection, doc, addDoc, getDoc };
+window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<script>
+let articles = [];
+let meta = { devise:'$', whatsapp:'', nomBoutique:'Boutique', adresse:{} };
+let activeCat = 'Toutes';
+let panier = []; // {articleId, articleNom, variantId, taille, couleur, qte, prixVenteUnit, maxStock}
+
+window.addEventListener('fb-ready', ()=>{
+  const { db, collection, doc, onSnapshot, getDoc } = window.__fb;
+  onSnapshot(collection(db,'articles'), snap=>{
+    articles = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderCategories(); renderGrid();
+  });
+  getDoc(doc(db,'meta','config')).then(d=>{
+    if(d.exists()){
+      meta = Object.assign(meta, d.data());
+      document.getElementById('shopTitle').textContent = meta.nomBoutique || 'Boutique';
+      const a = meta.adresse || {};
+      const parts = [a.quartier, a.reference, a.ville, a.province].filter(Boolean);
+      document.getElementById('shopAddress').textContent = parts.length ? 'Retrait : '+parts.join(' · ') : '';
+    }
+  });
+});
+
+function money(n){ return (Math.round((n||0)*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+meta.devise; }
+function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
+function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
+function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0); }
+
+function renderCategories(){
+  const cats = ['Toutes', ...new Set(articles.map(a=>a.categorie).filter(Boolean))];
+  document.getElementById('catTabs').innerHTML = cats.map(c=> `<button class="cat-chip ${c===activeCat?'active':''}" onclick="setCat('${esc(c)}')">${esc(c)}</button>`).join('');
+}
+function setCat(c){ activeCat = c; renderCategories(); renderGrid(); }
+
+function renderGrid(){
+  const list = articles.filter(a=> (activeCat==='Toutes' || a.categorie===activeCat) && totalStock(a)>0);
+  const grid = document.getElementById('grid');
+  if(list.length===0){ grid.innerHTML = '<div class="empty">Aucun article disponible pour le moment.</div>'; return; }
+  grid.innerHTML = list.map(a=> `
+    <div class="article-card" onclick="openArticle('${a.id}')">
+      <div class="nom">${esc(a.nom)}</div>
+      <div class="cat">${esc(a.categorie||'')}</div>
+      <div class="prix">${money(a.prixVente)}</div>
+      <div class="stock-note">${(a.variants||[]).length} variante(s) disponible(s)</div>
+    </div>
+  `).join('');
+}
+
+let currentArticle = null, currentVariantId = null, currentQte = 1;
+function openArticle(id){
+  currentArticle = articles.find(a=>a.id===id);
+  currentVariantId = null; currentQte = 1;
+  openModal(renderArticleModal());
+}
+function renderArticleModal(){
+  const a = currentArticle;
+  const variant = (a.variants||[]).find(v=>v.id===currentVariantId);
+  const maxQ = variant? variant.stock : 1;
+  return `
+    <h3>${esc(a.nom)}</h3>
+    <div class="mono" style="color:var(--accent);font-weight:700;font-size:1.1rem;margin-bottom:6px;">${money(a.prixVente)}</div>
+    <label>Choisissez une variante</label>
+    <div class="variant-chips">
+      ${(a.variants||[]).map(v=>{
+        const disabled = (v.stock||0)<=0, selected = currentVariantId===v.id;
+        return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="pickVariant('${v.id}')">${esc(variantLabel(v))}</button>`;
+      }).join('') || '<span class="muted">Aucune variante.</span>'}
+    </div>
+    ${currentVariantId? `
+      <div class="field"><label>Quantité</label>
+        <div class="qty-stepper">
+          <button onclick="qtyDelta(-1)">−</button>
+          <input type="number" value="${currentQte}" min="1" max="${maxQ}" oninput="qtySet(this.value, ${maxQ})">
+          <button onclick="qtyDelta(1)">+</button>
+          <span class="muted">/ ${maxQ} dispo</span>
+        </div>
+      </div>
+    `:''}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+      <button class="btn btn-primary" ${!currentVariantId?'disabled':''} onclick="addToPanier()">Ajouter au panier</button>
+    </div>
+  `;
+}
+function pickVariant(vid){ currentVariantId = vid; currentQte = 1; syncArticleModal(); }
+function qtyDelta(d){ const variant=currentArticle.variants.find(v=>v.id===currentVariantId); const max=variant?variant.stock:1; currentQte=Math.min(max,Math.max(1,currentQte+d)); syncArticleModal(); }
+function qtySet(val,max){ let q=parseInt(val,10); if(isNaN(q)||q<1)q=1; if(q>max)q=max; currentQte=q; syncArticleModal(); }
+function syncArticleModal(){ document.getElementById('modal-root').querySelector('.modal').innerHTML = renderArticleModal(); }
+
+function addToPanier(){
+  const a = currentArticle, variant = a.variants.find(v=>v.id===currentVariantId);
+  const existing = panier.find(p=> p.articleId===a.id && p.variantId===variant.id);
+  if(existing){ existing.qte = Math.min(variant.stock, existing.qte + currentQte); }
+  else{
+    panier.push({ articleId:a.id, articleNom:a.nom, variantId:variant.id, taille:variant.taille||'', couleur:variant.couleur||'', qte:currentQte, prixVenteUnit:a.prixVente, maxStock:variant.stock });
+  }
+  closeModal(); updatePanierBar();
+}
+
+function updatePanierBar(){
+  const bar = document.getElementById('panierBar');
+  const count = panier.reduce((s,p)=>s+p.qte,0);
+  const total = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  document.getElementById('panierCount').textContent = count;
+  document.getElementById('panierTotal').textContent = money(total);
+  bar.classList.toggle('show', panier.length>0);
+}
+
+function openPanier(){ openModal(renderPanierModal()); }
+function renderPanierModal(){
+  if(panier.length===0) return `<h3>Panier</h3><div class="empty">Votre panier est vide.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fermer</button></div>`;
+  const total = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  return `
+    <h3>Votre panier</h3>
+    ${panier.map((p,i)=>`
+      <div class="panier-item">
+        <div class="d">${esc(p.articleNom)}<div class="sub">${esc([p.taille,p.couleur].filter(Boolean).join(' / ')||'Standard')} × ${p.qte}</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="mono">${money(p.qte*p.prixVenteUnit)}</span>
+          <button class="rm" onclick="removeFromPanier(${i})">✕</button>
+        </div>
+      </div>
+    `).join('')}
+    <div class="total-line"><span>Total</span><span class="val">${money(total)}</span></div>
+    <div class="field" style="margin-top:16px;"><label>Votre nom</label><input type="text" id="clientNom" placeholder="Nom et prénom"></div>
+    <div class="field"><label>Votre téléphone</label><input type="tel" id="clientTel" placeholder="Ex : 0700000000"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Continuer mes achats</button>
+      <button class="btn btn-primary" onclick="creerFacture()">Générer la facture</button>
+    </div>
+  `;
+}
+function removeFromPanier(i){ panier.splice(i,1); updatePanierBar(); if(panier.length===0) closeModal(); else openModal(renderPanierModal()); }
+
+async function creerFacture(){
+  const clientNom = document.getElementById('clientNom').value.trim();
+  const clientTelephone = document.getElementById('clientTel').value.trim();
+  if(!clientNom){ alert("Merci d'indiquer votre nom."); return; }
+  const { db, collection, addDoc } = window.__fb;
+  const total = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  const items = panier.map(p=> ({ articleId:p.articleId, articleNom:p.articleNom, variantId:p.variantId, taille:p.taille, couleur:p.couleur, qte:p.qte, prixVenteUnit:p.prixVenteUnit }));
+  const docRef = await addDoc(collection(db,'precommandes'), {
+    date: new Date().toISOString(), clientNom, clientTelephone, items, total, statut:'non_payé'
+  });
+  const commandeId = docRef.id.slice(0,6).toUpperCase();
+  openModal(renderFactureModal(commandeId, clientNom, clientTelephone, items, total));
+  panier = []; updatePanierBar();
+}
+
+function renderFactureModal(commandeId, clientNom, clientTelephone, items, total){
+  const dateStr = new Date().toLocaleString('fr-FR');
+  const lignesTexte = items.map(it=> `- ${it.articleNom} (${[it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard'}) x${it.qte} = ${money(it.qte*it.prixVenteUnit)}`).join('\\n');
+  const message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\\n${lignesTexte}\\nTotal : ${money(total)}\\nNom : ${clientNom}\\nTéléphone : ${clientTelephone}\\n\\nJe passerai payer et récupérer en boutique. Merci !`;
+  const waLink = meta.whatsapp ? `https://wa.me/${meta.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}` : null;
+  return `
+    <div id="printArea">
+      <div class="facture">
+        <h3>${esc(meta.nomBoutique||'Boutique')}</h3>
+        <div class="l"><span>Commande</span><span>#${commandeId}</span></div>
+        <div class="l"><span>Date</span><span>${dateStr}</span></div>
+        <div class="l"><span>Client</span><span>${esc(clientNom)}</span></div>
+        <div class="l"><span>Téléphone</span><span>${esc(clientTelephone)}</span></div>
+        <hr>
+        ${items.map(it=> `<div class="l"><span>${esc(it.articleNom)} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) ×${it.qte}</span><span>${money(it.qte*it.prixVenteUnit)}</span></div>`).join('')}
+        <hr>
+        <div class="l" style="font-weight:700;"><span>TOTAL À PAYER EN BOUTIQUE</span><span>${money(total)}</span></div>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:14px;font-size:.82rem;">Envoyez cette facture à la boutique pour réserver vos articles, puis passez payer et récupérer sur place.</p>
+    <div class="modal-actions" style="flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimer / enregistrer en PDF</button>
+      ${waLink ? `<a class="btn btn-whatsapp" href="${waLink}" target="_blank" style="text-decoration:none;display:inline-block;">Envoyer sur WhatsApp</a>` : ''}
+      <button class="btn btn-primary" onclick="closeModal()">Terminé</button>
+    </div>
+  `;
+}
+
+function openModal(html){ document.getElementById('modal-root').innerHTML = `<div class="modal-bg" onclick="if(event.target===this) closeModal()"><div class="modal">${html}</div></div>`; }
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+</script>
+</body>
+</html>
