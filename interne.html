@@ -10,47 +10,51 @@
   :root{
     --bg:#FBF7F2;--surface:#FFFFFF;--ink:#241B2F;--ink-soft:#6b5f72;
     --accent:#7C2D4A;--accent-light:#B85C7A;--gold:#B8923F;--danger:#A8432F;--good:#3F6B4E;--line:#E7DED2;--radius:14px;
+    --shadow-sm:0 1px 3px rgba(36,27,47,.06);
+    --shadow-md:0 10px 24px rgba(36,27,47,.1);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
   h1,h2,h3,.display{font-family:'Fraunces',serif;}
   .mono{font-family:'IBM Plex Mono',monospace;}
-  #app{max-width:1080px;margin:0 auto;padding:20px 16px 60px;}
-  .app-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+  #app{max-width:1080px;margin:0 auto;padding:26px 18px 70px;}
+  .app-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
   .app-header .brand{display:flex;align-items:baseline;gap:10px;}
   .app-header h1{font-size:1.5rem;font-weight:600;margin:0;}
   .app-header .sub{color:var(--ink-soft);font-size:.8rem;}
   #connStatus.offline{color:var(--danger);}
-  .settings-btn{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:1rem;}
+  .settings-btn{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:1rem;transition:border-color .18s ease,color .18s ease;}
   .settings-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .tabs{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-  .tab-btn{background:none;border:none;cursor:pointer;padding:9px 14px;font-size:.86rem;font-weight:600;color:var(--ink-soft);border-radius:8px 8px 0 0;position:relative;top:1px;}
+  .tabs{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
+  .tab-btn{background:none;border:none;cursor:pointer;padding:9px 14px;font-size:.86rem;font-weight:600;color:var(--ink-soft);border-radius:8px 8px 0 0;position:relative;top:1px;transition:color .18s ease;}
   .tab-btn.active{color:var(--accent);background:var(--surface);border:1px solid var(--line);border-bottom:1px solid var(--surface);}
   .tab-btn .count{background:var(--accent);color:#fff;border-radius:999px;font-size:.65rem;padding:1px 6px;margin-left:5px;}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
-  .section-title{font-size:1.05rem;font-weight:600;margin:0 0 14px;font-family:'Fraunces',serif;}
-  .grid{display:grid;gap:14px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
+  .section-title{font-size:1.05rem;font-weight:600;margin:0 0 16px;font-family:'Fraunces',serif;}
+  .grid{display:grid;gap:16px;}
   .grid.stats{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
   .grid.two{grid-template-columns:1.3fr 1fr;}
   @media (max-width:760px){.grid.two{grid-template-columns:1fr;}}
-  .tag-card{position:relative;padding:16px 16px 16px 34px;border-radius:10px 4px 4px 10px;background:var(--surface);border:1px solid var(--line);}
+  .tag-card{position:relative;padding:16px 16px 16px 34px;border-radius:10px 4px 4px 10px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);transition:transform .2s ease, box-shadow .2s ease;}
+  .tag-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
   .tag-card::before{content:'';position:absolute;left:13px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--ink);}
   .tag-card .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:6px;}
   .tag-card .value{font-family:'IBM Plex Mono';font-size:1.5rem;font-weight:600;}
   .tag-card .value.accent{color:var(--accent);} .tag-card .value.good{color:var(--good);} .tag-card .value.danger{color:var(--danger);}
   .tag-card .hint{font-size:.72rem;color:var(--ink-soft);margin-top:4px;}
   label{display:block;font-size:.76rem;font-weight:600;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
-  input[type=text],input[type=number],input[type=tel],select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:'Inter';font-size:.9rem;color:var(--ink);}
+  input[type=text],input[type=number],input[type=tel],select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:'Inter';font-size:.9rem;color:var(--ink);transition:border-color .18s ease;}
   input:focus,select:focus{outline:2px solid var(--accent-light);outline-offset:1px;border-color:var(--accent);}
-  .field{margin-bottom:12px;} .row{display:flex;gap:10px;} .row > .field{flex:1;}
-  button.btn{font-weight:600;font-size:.86rem;border-radius:8px;border:1px solid transparent;padding:10px 16px;cursor:pointer;font-family:'Inter';}
+  .field{margin-bottom:14px;} .row{display:flex;gap:10px;} .row > .field{flex:1;}
+  button.btn{font-weight:600;font-size:.86rem;border-radius:8px;border:1px solid transparent;padding:10px 16px;cursor:pointer;font-family:'Inter';transition:background .18s ease,border-color .18s ease,color .18s ease,transform .1s ease;}
+  button.btn:active{transform:translateY(1px);}
   .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#671f3c;} .btn-primary:disabled{background:#c9b7bf;cursor:not-allowed;}
   .btn-ghost{background:none;border:1px solid var(--line);color:var(--ink);} .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
   .btn-danger{background:var(--danger);color:#fff;} .btn-danger:hover{background:#8a361f;}
   .btn-good{background:var(--good);color:#fff;}
   .btn-sm{padding:6px 10px;font-size:.76rem;}
   .search-results{margin-top:8px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
-  .search-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .search-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;transition:background .15s ease;}
   .search-item:last-child{border-bottom:none;} .search-item:hover{background:var(--bg);}
   .search-item .nom{font-weight:600;font-size:.88rem;} .search-item .meta{font-size:.72rem;color:var(--ink-soft);}
   .search-item .prix{font-family:'IBM Plex Mono';font-size:.82rem;color:var(--accent);}
@@ -79,9 +83,11 @@
   #ticket-toast{position:fixed;top:20px;right:20px;max-width:280px;background:var(--surface);border:1px dashed var(--ink);border-radius:6px;padding:14px 16px;font-family:'IBM Plex Mono';font-size:.78rem;box-shadow:0 8px 24px rgba(36,27,47,.18);transform:translateX(340px);opacity:0;transition:all .35s ease;z-index:50;}
   #ticket-toast.show{transform:translateX(0);opacity:1;}
   #ticket-toast .t-title{font-weight:700;margin-bottom:6px;} #ticket-toast .t-line{display:flex;justify-content:space-between;color:var(--ink-soft);} #ticket-toast hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
-  .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.4);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
-  .modal{background:var(--surface);border-radius:14px;padding:22px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;}
-  .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
+  .modal{background:var(--surface);border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 60px rgba(36,27,47,.22);}
+  .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .photo-thumb{width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block;}
+  .photo-thumb-empty{width:38px;height:38px;border-radius:6px;background:var(--bg);border:1px solid var(--line);}
   .flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
   .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;margin-right:5px;}
   .sync-dot.off{background:var(--danger);}
@@ -585,7 +591,10 @@ function renderStock(){
   const rows = state.articles.map(a=>{
     const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
     const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
-    return `<tr><td>${esc(a.nom)}</td><td class="muted">${esc(a.categorie||'—')}</td><td class="num mono">${money(a.prixAchat)}</td><td class="num mono">${money(a.prixVente)}</td>
+    const thumb = a.photoUrl
+      ? `<img class="photo-thumb" src="${esc(a.photoUrl)}" alt="" onerror="this.outerHTML='<div class=&quot;photo-thumb-empty&quot;></div>';">`
+      : `<div class="photo-thumb-empty"></div>`;
+    return `<tr><td>${thumb}</td><td>${esc(a.nom)}</td><td class="muted">${esc(a.categorie||'—')}</td><td class="num mono">${money(a.prixAchat)}</td><td class="num mono">${money(a.prixVente)}</td>
       <td class="num">${(a.variants||[]).length}</td><td class="num">${low?`<span class="badge low">${totalStock}</span>`:`<span class="badge ok">${totalStock}</span>`}</td>
       <td class="num"><button class="btn btn-ghost btn-sm" onclick="editArticle('${a.id}')">Modifier</button></td></tr>`;
   }).join('');
@@ -593,14 +602,21 @@ function renderStock(){
     <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${state.articles.length})</div>
       <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
     <div class="card">${state.articles.length===0? '<div class="empty">Aucun article. Ajoute ton premier article.</div>' : `
-      <table><thead><tr><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
+      <table><thead><tr><th></th><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table>`}</div>
   `;
 }
 function editArticle(id){
   const existing = id? state.articles.find(a=>a.id===id):null;
-  articleFormDraft = existing? JSON.parse(JSON.stringify(existing)) : { id:null, nom:'', categorie:'', prixAchat:0, prixVente:0, variants:[{id:uid('vr'),taille:'',couleur:'',stock:0}] };
+  articleFormDraft = existing? JSON.parse(JSON.stringify(existing)) : { id:null, nom:'', categorie:'', prixAchat:0, prixVente:0, photoUrl:'', variants:[{id:uid('vr'),taille:'',couleur:'',stock:0}] };
   openModal(renderArticleModal());
+}
+function updatePhotoPreview(url){
+  const img = document.getElementById('f_photo_preview');
+  if(!img) return;
+  const clean = (url||'').trim();
+  if(clean){ img.src = clean; img.style.display = 'block'; }
+  else{ img.removeAttribute('src'); img.style.display = 'none'; }
 }
 function renderArticleModal(){
   const d = articleFormDraft;
@@ -611,6 +627,10 @@ function renderArticleModal(){
       <datalist id="catList">${state.meta.categories.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
     <div class="row"><div class="field"><label>Prix d'achat</label><input type="number" id="f_achat" value="${d.prixAchat}" min="0" step="0.01"></div>
       <div class="field"><label>Prix de vente</label><input type="number" id="f_vente" value="${d.prixVente}" min="0" step="0.01"></div></div>
+    <div class="field"><label>Photo (URL)</label>
+      <input type="text" id="f_photo" value="${esc(d.photoUrl||'')}" placeholder="https://..." oninput="updatePhotoPreview(this.value)">
+      <img id="f_photo_preview" src="${esc(d.photoUrl||'')}" alt="" style="margin-top:8px;max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--line);object-fit:cover;${d.photoUrl?'':'display:none;'}" onerror="this.style.display='none';">
+    </div>
     <label style="margin-top:6px;">Variantes (taille / couleur / stock)</label>
     <div id="variantsWrap">${d.variants.map(v=>renderVariantRow(v)).join('')}</div>
     <button class="btn btn-ghost btn-sm" onclick="addVariantRow()">+ Ajouter une variante</button>
@@ -638,6 +658,7 @@ async function saveArticleForm(){
   const categorie = document.getElementById('f_cat').value.trim();
   const prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
   const prixVente = parseFloat(document.getElementById('f_vente').value)||0;
+  const photoUrl = document.getElementById('f_photo').value.trim();
   const variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>({
     id: row.dataset.vid,
     taille: row.querySelector('[data-field=taille]').value.trim(),
@@ -645,7 +666,7 @@ async function saveArticleForm(){
     stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
   }));
   const { db, doc, setDoc, addDoc, collection } = window.__fb;
-  const record = { nom, categorie, prixAchat, prixVente, variants };
+  const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants };
   if(articleFormDraft.id){ await setDoc(doc(db,'articles',articleFormDraft.id), record); }
   else{ await addDoc(collection(db,'articles'), record); }
   if(categorie && !state.meta.categories.includes(categorie)){
@@ -772,10 +793,11 @@ function renderHistorique(){
   const totalPerte = state.pertes.reduce((s,p)=>s+(p.qte*(p.prixAchatUnit||0)),0);
   return `
     <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Historique</div>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-sm ${histFilter==='toutes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('toutes')">Toutes</button>
         <button class="btn btn-sm ${histFilter==='ventes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('ventes')">Ventes</button>
         <button class="btn btn-sm ${histFilter==='pertes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('pertes')">Pertes</button>
+        <button class="btn btn-sm btn-ghost" onclick="exporterCSV()">⬇ Exporter les données (CSV)</button>
       </div></div>
     <div class="muted" style="margin-bottom:10px;">Total ventes : <strong>${money(totalCA)}</strong> · Total pertes : <strong style="color:var(--danger)">${money(totalPerte)}</strong></div>
     <div class="card">${items.length===0? '<div class="empty">Rien à afficher.</div>' : `
@@ -787,6 +809,57 @@ function renderHistorique(){
   `;
 }
 function setHistFilter(f){ histFilter=f; render(); }
+
+/* ---------------------------------------------------------
+   EXPORT CSV
+--------------------------------------------------------- */
+function csvEscape(val){
+  if(val==null) return '';
+  const str = String(val);
+  if(/[",\n;]/.test(str)) return '"'+str.replace(/"/g,'""')+'"';
+  return str;
+}
+function toCSV(rows, headers){
+  const lines = [headers.join(',')];
+  rows.forEach(r=> lines.push(headers.map(h=> csvEscape(r[h])).join(',')));
+  return lines.join('\r\n');
+}
+function downloadCSV(filename, csvContent){
+  const bom = '﻿';
+  const blob = new Blob([bom+csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exporterCSV(){
+  const venteHeaders = ['id','date','articleId','articleNom','variantId','taille','couleur','qte','prixVenteUnit','prixAchatUnit','total','profit','vendeuse','source'];
+  const venteRows = state.ventes.map(v=> ({
+    id:v.id, date:v.date, articleId:v.articleId, articleNom:v.articleNom, variantId:v.variantId,
+    taille:v.taille, couleur:v.couleur, qte:v.qte, prixVenteUnit:v.prixVenteUnit, prixAchatUnit:v.prixAchatUnit,
+    total:v.total, profit:v.profit, vendeuse:v.vendeuse, source:v.source
+  }));
+  downloadCSV('ventes.csv', toCSV(venteRows, venteHeaders));
+
+  const perteHeaders = ['id','date','articleId','articleNom','variantId','taille','couleur','qte','prixAchatUnit','raison','vendeuse'];
+  const perteRows = state.pertes.map(p=> ({
+    id:p.id, date:p.date, articleId:p.articleId, articleNom:p.articleNom, variantId:p.variantId,
+    taille:p.taille, couleur:p.couleur, qte:p.qte, prixAchatUnit:p.prixAchatUnit, raison:p.raison, vendeuse:p.vendeuse
+  }));
+  downloadCSV('pertes.csv', toCSV(perteRows, perteHeaders));
+
+  const articleHeaders = ['id','nom','categorie','prixAchat','prixVente','photoUrl','variantId','taille','couleur','stock'];
+  const articleRows = [];
+  state.articles.forEach(a=>{
+    const variants = (a.variants && a.variants.length) ? a.variants : [{id:'',taille:'',couleur:'',stock:0}];
+    variants.forEach(v=> articleRows.push({
+      id:a.id, nom:a.nom, categorie:a.categorie, prixAchat:a.prixAchat, prixVente:a.prixVente, photoUrl:a.photoUrl||'',
+      variantId:v.id, taille:v.taille, couleur:v.couleur, stock:v.stock
+    }));
+  });
+  downloadCSV('articles.csv', toCSV(articleRows, articleHeaders));
+}
 
 /* ---------------------------------------------------------
    SETTINGS
