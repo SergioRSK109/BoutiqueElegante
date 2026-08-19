@@ -96,12 +96,17 @@
   #loginError{color:var(--danger);font-size:.8rem;margin-top:8px;display:none;}
   .logout-link{background:none;border:none;color:var(--ink-soft);font-size:.72rem;cursor:pointer;text-decoration:underline;margin-left:8px;}
   .hidden{display:none !important;}
+  .shop-logo{display:block;margin:0 auto 10px;height:160px;width:auto;max-width:100%;}
+  @media (max-width:600px){ .shop-logo{height:110px;} }
+  .app-header-logo{text-align:center;margin-bottom:14px;}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 </style>
 </head>
 <body>
 <div id="loginScreen" class="hidden">
   <div class="box">
-    <h1>ELEGANTE BOUTIQUE</h1>
+    <img src="logo.png" alt="Elégante Boutique" class="shop-logo">
+    <h1 class="sr-only">ELEGANTE BOUTIQUE</h1>
     <p>Espace interne — réservé à l'équipe</p>
     <div class="field"><label>Email</label><input type="text" id="loginEmail" placeholder="ton.email@exemple.com"></div>
     <div class="field"><label>Mot de passe</label><input type="text" id="loginPassword" placeholder="Mot de passe" style="-webkit-text-security:disc;text-security:disc;"></div>
@@ -110,8 +115,11 @@
   </div>
 </div>
 <div id="app" class="hidden">
+  <div class="app-header-logo">
+    <img src="logo.png" alt="Elégante Boutique" class="shop-logo">
+  </div>
   <div class="app-header">
-    <div class="brand"><h1 id="shopTitle">Atelier — Gestion</h1>
+    <div class="brand"><h1 id="shopTitle" class="sr-only">Atelier — Gestion</h1>
       <span class="sub"><span class="sync-dot" id="syncDot"></span><span id="connStatus">synchronisé</span><button class="logout-link" onclick="doLogout()">se déconnecter</button></span>
     </div>
     <button class="settings-btn" onclick="openSettings()" title="Réglages">⚙</button>
