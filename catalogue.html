@@ -85,7 +85,7 @@
   <header>
     <img src="logo.png" alt="Elégante Boutique" class="shop-logo">
     <h1 id="shopTitle" class="sr-only">Boutique</h1>
-    <p>Parcourez, choisissez taille et couleur, réservez — vous payez en boutique.</p>
+    <p>Parcourez, choisissez taille et couleur, réservez — vous payez en boutique ou par Mobile Money.</p>
     <p id="shopPaiement" class="mono" style="font-size:.76rem;color:var(--ink-soft);margin-top:6px;"></p>
     <p id="shopAddress" class="mono" style="font-size:.76rem;color:var(--ink-soft);margin-top:6px;"></p>
   </header>
@@ -366,7 +366,8 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
   return `
     <div id="printArea">
       <div class="facture">
-        <h3>${esc(meta.nomBoutique||'Boutique')}</h3>
+        <img src="logo.png" alt="Elégante Boutique" style="display:block;margin:0 auto 8px;height:70px;width:auto;">
+        <h3 style="text-align:center;">${esc(meta.nomBoutique||'Boutique')}</h3>
         <div class="l"><span>Commande</span><span>#${commandeId}</span></div>
         <div class="l"><span>Date</span><span>${dateStr}</span></div>
         <div class="l"><span>Client</span><span>${esc(clientNom)}</span></div>
