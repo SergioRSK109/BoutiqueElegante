@@ -179,10 +179,12 @@ onAuthStateChanged(auth, (user) => {
   const loginScreen = document.getElementById('loginScreen');
   const app = document.getElementById('app');
   if(user){
+    window.__currentVendeuse = user.email ? user.email.split('@')[0] : '';
     loginScreen.classList.add('hidden');
     app.classList.remove('hidden');
     if(!alreadyWired){ alreadyWired = true; window.dispatchEvent(new Event('fb-ready')); }
   } else {
+    window.__currentVendeuse = '';
     loginScreen.classList.remove('hidden');
     app.classList.add('hidden');
   }
@@ -231,6 +233,12 @@ function todayISO(){ return new Date().toISOString(); }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
+function libelleModePaiement(mode){
+  if(mode==='boutique') return 'Paiement en boutique (espèces)';
+  if(mode==='airtel') return 'Airtel Money';
+  if(mode==='orange') return 'Orange Money';
+  return '—';
+}
 
 async function doLogin(){
   const email = document.getElementById('loginEmail').value.trim();
@@ -246,13 +254,20 @@ document.getElementById('loginPassword').addEventListener('keydown', e=>{ if(e.k
 
 
 document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{ state.tab = btn.dataset.tab; render(); });
+  btn.addEventListener('click', ()=>{
+    state.tab = btn.dataset.tab;
+    if(state.tab==='vente' && !state.vente.vendeuse) state.vente.vendeuse = window.__currentVendeuse || '';
+    if(state.tab==='pertes' && !state.perte.vendeuse) state.perte.vendeuse = window.__currentVendeuse || '';
+    render();
+  });
 });
 
 /* ---------------------------------------------------------
    FIRESTORE WIRING (started once fb-ready fires)
 --------------------------------------------------------- */
 window.addEventListener('fb-ready', () => {
+  if(!state.vente.vendeuse) state.vente.vendeuse = window.__currentVendeuse || '';
+  if(!state.perte.vendeuse) state.perte.vendeuse = window.__currentVendeuse || '';
   const { db, collection, doc, onSnapshot, query, orderBy, getDoc, setDoc } = window.__fb;
 
   onSnapshot(collection(db,'articles'), snap=>{
@@ -548,7 +563,8 @@ async function submitPerte(){
       });
     });
     showTicket({title:'PERTE DÉCLARÉE', lines:[[p.article.nom,''],['Quantité','x'+p.qte],[p.raison,'']]});
-    state.perte = { query:'', results:[], article:null, variantId:null, qte:1, raison:'Abîmé / endommagé', vendeuse:'' };
+    const keepVendeuse = p.vendeuse || window.__currentVendeuse || '';
+    state.perte = { query:'', results:[], article:null, variantId:null, qte:1, raison:'Abîmé / endommagé', vendeuse:keepVendeuse };
     render();
   }catch(e){ alert(e.message || 'Erreur lors de la déclaration.'); }
 }
@@ -661,6 +677,11 @@ function renderPrecommandeCard(p){
       <div class="muted mono" style="margin-bottom:8px;">${fmtDate(p.date)} · commande #${esc(p.id.slice(0,6))}</div>
       <div class="items-mini">
         ${(p.items||[]).map(it=> `${esc(it.articleNom)} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) × ${it.qte}`).join('<br>')}
+      </div>
+      <div class="muted" style="margin-top:8px;">Mode de paiement : <strong>${esc(libelleModePaiement(p.modePaiement))}</strong></div>
+      <div class="muted" style="margin-top:4px;">
+        Sous-total : ${money(p.sousTotal!=null ? p.sousTotal : p.total)}
+        ${(p.fraisPourcent||0)>0 ? `<br>Frais (${p.fraisPourcent}%) : ${money(p.montantFrais||0)}` : ''}
       </div>
       <div class="total-line"><span class="lbl">Total</span><span class="val">${money(p.total)}</span></div>
       ${p.statut==='non_payé' ? `

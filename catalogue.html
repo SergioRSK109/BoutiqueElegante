@@ -125,6 +125,9 @@ let articles = [];
 let meta = { devise:'$', whatsapp:'', nomBoutique:'Boutique', adresse:{} };
 let activeCat = 'Toutes';
 let panier = []; // {articleId, articleNom, variantId, taille, couleur, qte, prixVenteUnit, maxStock}
+let modePaiementChoisi = null;
+let panierClientNom = '';
+let panierClientTel = '';
 
 window.addEventListener('fb-ready', ()=>{
   const { db, collection, doc, onSnapshot, getDoc } = window.__fb;
@@ -159,6 +162,41 @@ function paiementMobileTexte(){
   if(pm.orange) parts.push('Orange Money ('+pm.orange+')');
   if(parts.length===0) return '';
   return 'Vous pouvez aussi payer via '+parts.join(' ou ')+'.';
+}
+
+const FRAIS_RETRAIT_PCT = 1.5;
+const FRAIS_CASH_PCT = 3;
+
+function libelleModePaiement(mode){
+  if(mode==='boutique') return 'Paiement en boutique (espèces)';
+  if(mode==='airtel') return 'Airtel Money';
+  if(mode==='orange') return 'Orange Money';
+  return '';
+}
+
+function calculFrais(sousTotal, mode){
+  if(mode==='airtel' || mode==='orange'){
+    const fraisRetrait = sousTotal * FRAIS_RETRAIT_PCT/100;
+    const fraisCash = sousTotal * FRAIS_CASH_PCT/100;
+    const montantFrais = fraisRetrait + fraisCash;
+    return { mode, sousTotal, fraisPourcent: FRAIS_RETRAIT_PCT+FRAIS_CASH_PCT, fraisRetrait, fraisCash, montantFrais, total: sousTotal + montantFrais };
+  }
+  return { mode, sousTotal, fraisPourcent: 0, fraisRetrait: 0, fraisCash: 0, montantFrais: 0, total: sousTotal };
+}
+
+function renderRecapPaiement(sousTotal, mode){
+  const c = calculFrais(sousTotal, mode);
+  if(c.fraisPourcent<=0){
+    return `<div class="total-line"><span>Total à payer</span><span class="val">${money(c.total)}</span></div>`;
+  }
+  return `
+    <div style="margin-top:10px;font-size:.85rem;">
+      <div class="l" style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Sous-total articles</span><span class="mono">${money(c.sousTotal)}</span></div>
+      <div class="l" style="display:flex;justify-content:space-between;margin-bottom:4px;color:var(--ink-soft);"><span>Frais retrait mobile money (${FRAIS_RETRAIT_PCT}%)</span><span class="mono">${money(c.fraisRetrait)}</span></div>
+      <div class="l" style="display:flex;justify-content:space-between;margin-bottom:4px;color:var(--ink-soft);"><span>Frais accès cash (${FRAIS_CASH_PCT}%)</span><span class="mono">${money(c.fraisCash)}</span></div>
+    </div>
+    <div class="total-line"><span>TOTAL À PAYER</span><span class="val">${money(c.total)}</span></div>
+  `;
 }
 
 function renderCategories(){
@@ -244,7 +282,7 @@ function updatePanierBar(){
 function openPanier(){ openModal(renderPanierModal()); }
 function renderPanierModal(){
   if(panier.length===0) return `<h3>Panier</h3><div class="empty">Votre panier est vide.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fermer</button></div>`;
-  const total = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  const sousTotal = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
   return `
     <h3>Votre panier</h3>
     ${panier.map((p,i)=>`
@@ -256,36 +294,68 @@ function renderPanierModal(){
         </div>
       </div>
     `).join('')}
-    <div class="total-line"><span>Total</span><span class="val">${money(total)}</span></div>
-    <div class="field" style="margin-top:16px;"><label>Votre nom</label><input type="text" id="clientNom" placeholder="Nom et prénom"></div>
-    <div class="field"><label>Votre téléphone</label><input type="tel" id="clientTel" placeholder="Ex : 0700000000"></div>
+    <div class="field" style="margin-top:16px;">
+      <label>Mode de paiement</label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:.86rem;color:var(--ink);">
+          <input type="radio" name="modePaiement" value="boutique" ${modePaiementChoisi==='boutique'?'checked':''} onchange="selectModePaiement('boutique')">
+          Je passerai payer en boutique (espèces)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:.86rem;color:var(--ink);">
+          <input type="radio" name="modePaiement" value="airtel" ${modePaiementChoisi==='airtel'?'checked':''} onchange="selectModePaiement('airtel')">
+          Je paierai par Airtel Money
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:.86rem;color:var(--ink);">
+          <input type="radio" name="modePaiement" value="orange" ${modePaiementChoisi==='orange'?'checked':''} onchange="selectModePaiement('orange')">
+          Je paierai par Orange Money
+        </label>
+      </div>
+    </div>
+    ${modePaiementChoisi
+      ? renderRecapPaiement(sousTotal, modePaiementChoisi)
+      : `<div class="total-line"><span>Total</span><span class="val">${money(sousTotal)}</span></div><p class="muted" style="margin-top:6px;font-size:.78rem;color:var(--ink-soft);">Choisissez un mode de paiement pour continuer.</p>`}
+    <div class="field" style="margin-top:16px;"><label>Votre nom</label><input type="text" id="clientNom" value="${esc(panierClientNom)}" oninput="panierClientNom=this.value" placeholder="Nom et prénom"></div>
+    <div class="field"><label>Votre téléphone</label><input type="tel" id="clientTel" value="${esc(panierClientTel)}" oninput="panierClientTel=this.value" placeholder="Ex : 0700000000"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Continuer mes achats</button>
-      <button class="btn btn-primary" onclick="creerFacture()">Générer la facture</button>
+      <button class="btn btn-primary" ${!modePaiementChoisi?'disabled':''} onclick="creerFacture()">Générer la facture</button>
     </div>
   `;
 }
-function removeFromPanier(i){ panier.splice(i,1); updatePanierBar(); if(panier.length===0) closeModal(); else openModal(renderPanierModal()); }
+function selectModePaiement(mode){ modePaiementChoisi = mode; openModal(renderPanierModal()); }
+function removeFromPanier(i){
+  panier.splice(i,1); updatePanierBar();
+  if(panier.length===0){ closeModal(); modePaiementChoisi = null; panierClientNom=''; panierClientTel=''; }
+  else openModal(renderPanierModal());
+}
 
 async function creerFacture(){
   const clientNom = document.getElementById('clientNom').value.trim();
   const clientTelephone = document.getElementById('clientTel').value.trim();
   if(!clientNom){ alert("Merci d'indiquer votre nom."); return; }
+  if(!modePaiementChoisi){ alert("Merci de choisir un mode de paiement."); return; }
   const { db, collection, addDoc } = window.__fb;
-  const total = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  const sousTotal = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  const c = calculFrais(sousTotal, modePaiementChoisi);
   const items = panier.map(p=> ({ articleId:p.articleId, articleNom:p.articleNom, variantId:p.variantId, taille:p.taille, couleur:p.couleur, qte:p.qte, prixVenteUnit:p.prixVenteUnit }));
   const docRef = await addDoc(collection(db,'precommandes'), {
-    date: new Date().toISOString(), clientNom, clientTelephone, items, total, statut:'non_payé'
+    date: new Date().toISOString(), clientNom, clientTelephone, items,
+    modePaiement: c.mode, sousTotal: c.sousTotal, fraisPourcent: c.fraisPourcent, montantFrais: c.montantFrais, total: c.total,
+    statut:'non_payé'
   });
   const commandeId = docRef.id.slice(0,6).toUpperCase();
-  openModal(renderFactureModal(commandeId, clientNom, clientTelephone, items, total));
-  panier = []; updatePanierBar();
+  openModal(renderFactureModal(commandeId, clientNom, clientTelephone, items, c));
+  panier = []; modePaiementChoisi = null; panierClientNom = ''; panierClientTel = ''; updatePanierBar();
 }
 
-function renderFactureModal(commandeId, clientNom, clientTelephone, items, total){
+function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
   const dateStr = new Date().toLocaleString('fr-FR');
   const lignesTexte = items.map(it=> `- ${it.articleNom} (${[it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard'}) x${it.qte} = ${money(it.qte*it.prixVenteUnit)}`).join('\n');
-  let message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\n${lignesTexte}\nTotal : ${money(total)}\nNom : ${clientNom}\nTéléphone : ${clientTelephone}\n\nJe passerai payer et récupérer en boutique. Merci !`;
+  const modeTexte = libelleModePaiement(c.mode);
+  const fraisTexte = c.fraisPourcent>0
+    ? `Sous-total articles : ${money(c.sousTotal)}\nFrais retrait mobile money (${FRAIS_RETRAIT_PCT}%) : ${money(c.fraisRetrait)}\nFrais accès cash (${FRAIS_CASH_PCT}%) : ${money(c.fraisCash)}\nTOTAL À PAYER : ${money(c.total)}`
+    : `TOTAL À PAYER : ${money(c.total)}`;
+  let message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\n${lignesTexte}\nMode de paiement : ${modeTexte}\n${fraisTexte}\nNom : ${clientNom}\nTéléphone : ${clientTelephone}\n\nJe passerai payer et récupérer en boutique. Merci !`;
   const pmTexte = paiementMobileTexte();
   if(pmTexte){ message += `\n\n${pmTexte}`; }
   const waLink = meta.whatsapp ? `https://wa.me/${meta.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}` : null;
@@ -297,10 +367,16 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, total
         <div class="l"><span>Date</span><span>${dateStr}</span></div>
         <div class="l"><span>Client</span><span>${esc(clientNom)}</span></div>
         <div class="l"><span>Téléphone</span><span>${esc(clientTelephone)}</span></div>
+        <div class="l"><span>Mode de paiement</span><span>${esc(modeTexte)}</span></div>
         <hr>
         ${items.map(it=> `<div class="l"><span>${esc(it.articleNom)} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) ×${it.qte}</span><span>${money(it.qte*it.prixVenteUnit)}</span></div>`).join('')}
         <hr>
-        <div class="l" style="font-weight:700;"><span>TOTAL À PAYER EN BOUTIQUE</span><span>${money(total)}</span></div>
+        <div class="l"><span>Sous-total articles</span><span>${money(c.sousTotal)}</span></div>
+        ${c.fraisPourcent>0 ? `
+        <div class="l"><span>Frais retrait mobile money (${FRAIS_RETRAIT_PCT}%)</span><span>${money(c.fraisRetrait)}</span></div>
+        <div class="l"><span>Frais accès cash (${FRAIS_CASH_PCT}%)</span><span>${money(c.fraisCash)}</span></div>
+        ` : ''}
+        <div class="l" style="font-weight:700;"><span>TOTAL À PAYER${c.fraisPourcent>0?'':' EN BOUTIQUE'}</span><span>${money(c.total)}</span></div>
         ${paiementMobileTexte() ? `<div style="margin-top:8px;font-size:.78rem;color:var(--ink-soft);">${esc(paiementMobileTexte())}</div>` : ''}
       </div>
     </div>
