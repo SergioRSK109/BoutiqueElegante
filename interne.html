@@ -88,6 +88,10 @@
   .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
   .photo-thumb{width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block;}
   .photo-thumb-empty{width:38px;height:38px;border-radius:6px;background:var(--bg);border:1px solid var(--line);}
+  .crop-viewport{position:relative;width:280px;height:350px;max-width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#111;margin:0 auto;touch-action:none;cursor:grab;}
+  .crop-viewport:active{cursor:grabbing;}
+  .crop-viewport img{position:absolute;top:0;left:0;user-select:none;-webkit-user-drag:none;pointer-events:none;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
   .flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
   .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;margin-right:5px;}
   .sync-dot.off{background:var(--danger);}
@@ -589,31 +593,152 @@ async function submitPerte(){
 let articleFormDraft = null;
 const IMGBB_API_KEY = '6061bc42ed0c2d9a12653888358b5f95';
 
-function compressImage(file, maxWidth, quality){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('Image invalide.'));
-      img.onload = () => {
-        let width = img.width, height = img.height;
-        if(width > maxWidth){
-          height = Math.round(height * (maxWidth / width));
-          width = maxWidth;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(blob=>{
-          if(blob) resolve(blob); else reject(new Error('Compression impossible.'));
-        }, 'image/jpeg', quality);
-      };
-      img.src = reader.result;
+let cropState = null;
+
+function onPhotoFileSelected(file){
+  if(!file) return;
+  openCropModal(file);
+}
+
+function openCropModal(file){
+  const objectUrl = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const viewportW = 280, viewportH = 350;
+    const baseScale = Math.max(viewportW / img.naturalWidth, viewportH / img.naturalHeight);
+    cropState = {
+      objectUrl, img,
+      naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight,
+      viewportW, viewportH, baseScale, zoom: 1, scale: baseScale,
+      offsetX: (viewportW - img.naturalWidth*baseScale)/2,
+      offsetY: (viewportH - img.naturalHeight*baseScale)/2,
+      dragging: false, lastX: 0, lastY: 0
     };
-    reader.readAsDataURL(file);
-  });
+    openModal(renderCropModal());
+    wireCropEvents();
+  };
+  img.onerror = () => { URL.revokeObjectURL(objectUrl); alert('Image invalide.'); };
+  img.src = objectUrl;
+}
+
+function renderCropModal(){
+  return `
+    <h3>Recadrer la photo</h3>
+    <div class="crop-viewport" id="cropViewport">
+      <img id="cropImg" src="${cropState.objectUrl}" style="width:${cropState.naturalWidth*cropState.scale}px;height:${cropState.naturalHeight*cropState.scale}px;left:${cropState.offsetX}px;top:${cropState.offsetY}px;">
+    </div>
+    <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="${cropState.zoom}" oninput="onCropZoom(this.value)" style="margin-top:14px;">
+    <p class="muted" style="text-align:center;margin-top:6px;">Glisse la photo pour la repositionner, utilise le curseur pour zoomer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="cancelCrop()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmCrop()">Valider le recadrage</button>
+    </div>
+  `;
+}
+
+function updateCropImgStyle(){
+  const el = document.getElementById('cropImg');
+  if(!el || !cropState) return;
+  el.style.width = (cropState.naturalWidth*cropState.scale)+'px';
+  el.style.height = (cropState.naturalHeight*cropState.scale)+'px';
+  el.style.left = cropState.offsetX+'px';
+  el.style.top = cropState.offsetY+'px';
+}
+
+function clampCropOffsets(){
+  const dw = cropState.naturalWidth*cropState.scale;
+  const dh = cropState.naturalHeight*cropState.scale;
+  const minX = Math.min(0, cropState.viewportW - dw);
+  const minY = Math.min(0, cropState.viewportH - dh);
+  cropState.offsetX = Math.max(minX, Math.min(0, cropState.offsetX));
+  cropState.offsetY = Math.max(minY, Math.min(0, cropState.offsetY));
+}
+
+function wireCropEvents(){
+  const vp = document.getElementById('cropViewport');
+  if(!vp || !cropState) return;
+  vp.onpointerdown = (e) => {
+    cropState.dragging = true;
+    cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+    vp.setPointerCapture(e.pointerId);
+  };
+  vp.onpointermove = (e) => {
+    if(!cropState || !cropState.dragging) return;
+    const dx = e.clientX - cropState.lastX;
+    const dy = e.clientY - cropState.lastY;
+    cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+    cropState.offsetX += dx; cropState.offsetY += dy;
+    clampCropOffsets();
+    updateCropImgStyle();
+  };
+  const endDrag = () => { if(cropState) cropState.dragging = false; };
+  vp.onpointerup = endDrag;
+  vp.onpointercancel = endDrag;
+  vp.onpointerleave = endDrag;
+}
+
+function onCropZoom(val){
+  if(!cropState) return;
+  const newZoom = parseFloat(val);
+  const oldScale = cropState.scale;
+  const cx = (cropState.viewportW/2 - cropState.offsetX) / oldScale;
+  const cy = (cropState.viewportH/2 - cropState.offsetY) / oldScale;
+  cropState.zoom = newZoom;
+  cropState.scale = cropState.baseScale * newZoom;
+  cropState.offsetX = cropState.viewportW/2 - cx*cropState.scale;
+  cropState.offsetY = cropState.viewportH/2 - cy*cropState.scale;
+  clampCropOffsets();
+  updateCropImgStyle();
+}
+
+function cancelCrop(){
+  if(cropState){ URL.revokeObjectURL(cropState.objectUrl); cropState = null; }
+  document.getElementById('f_photo_file').value = '';
+  closeModal();
+  openModal(renderArticleModal());
+}
+
+async function confirmCrop(){
+  const cs = cropState;
+  const outW = 900, outH = Math.round(900 * cs.viewportH / cs.viewportW);
+  const canvas = document.createElement('canvas');
+  canvas.width = outW; canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  const sx = -cs.offsetX / cs.scale;
+  const sy = -cs.offsetY / cs.scale;
+  const sW = cs.viewportW / cs.scale;
+  const sH = cs.viewportH / cs.scale;
+  ctx.drawImage(cs.img, sx, sy, sW, sH, 0, 0, outW, outH);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+  URL.revokeObjectURL(cs.objectUrl);
+  cropState = null;
+  document.getElementById('f_photo_file').value = '';
+  closeModal();
+  openModal(renderArticleModal());
+  await uploadCroppedPhoto(blob);
+}
+
+async function uploadCroppedPhoto(blob){
+  const wrap = document.getElementById('photoFieldWrap');
+  const localUrl = URL.createObjectURL(blob);
+  if(wrap){
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="${localUrl}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);opacity:.6;">
+        <span class="muted">Envoi en cours…</span>
+      </div>
+    `;
+  }
+  try{
+    const url = await uploadToImgbb(blob);
+    articleFormDraft.photoUrl = url;
+  }catch(e){
+    alert("Erreur lors de l'envoi de la photo : " + (e.message || e));
+  }finally{
+    URL.revokeObjectURL(localUrl);
+    const w = document.getElementById('photoFieldWrap');
+    if(w) w.innerHTML = renderPhotoField();
+  }
 }
 
 async function uploadToImgbb(blob){
@@ -640,29 +765,6 @@ function renderPhotoField(){
     `;
   }
   return `<button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('f_photo_file').click()">📷 Ajouter une photo</button>`;
-}
-
-async function onPhotoFileSelected(file){
-  if(!file) return;
-  const wrap = document.getElementById('photoFieldWrap');
-  const localUrl = URL.createObjectURL(file);
-  wrap.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;">
-      <img src="${localUrl}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);opacity:.6;">
-      <span class="muted">Envoi en cours…</span>
-    </div>
-  `;
-  try{
-    const blob = await compressImage(file, 900, 0.8);
-    const url = await uploadToImgbb(blob);
-    articleFormDraft.photoUrl = url;
-  }catch(e){
-    alert("Erreur lors de l'envoi de la photo : " + (e.message || e));
-  }finally{
-    URL.revokeObjectURL(localUrl);
-    document.getElementById('f_photo_file').value = '';
-    wrap.innerHTML = renderPhotoField();
-  }
 }
 
 function renderStock(){
