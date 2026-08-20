@@ -23,10 +23,11 @@
   .logo-medallion{width:52px;height:52px;min-width:52px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.15);}
   .logo-medallion img{width:92%;height:92%;object-fit:contain;display:block;}
   .header-text{flex:1;min-width:0;text-align:right;height:52px;display:flex;flex-direction:column;justify-content:center;}
-  .header-name-line{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin:0 0 3px;}
-  .header-name-line .name-text{font-family:'Fraunces',serif;font-weight:500;font-size:12px;color:#FBF7F2;}
-  .header-name-line .cart-icon{font-size:13px;color:#FBF7F2;}
+  .header-name-line{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin:0 0 2px;line-height:14px;}
+  .header-name-line .name-text{font-family:'Fraunces',serif;font-weight:500;font-size:12px;line-height:14px;color:#FBF7F2;}
+  .header-name-line .cart-icon{font-size:12px;line-height:14px;color:#FBF7F2;}
   .header-info-line{font-size:9px;color:#c9cddb;line-height:1.35;display:flex;align-items:center;justify-content:flex-end;gap:4px;}
+  .header-info-line .header-icon{flex-shrink:0;width:10px;height:10px;}
   .page-intro{text-align:center;margin-bottom:34px;}
   .page-intro h1{font-size:1.6rem;margin:0 0 4px;}
   .page-intro p{font-family:'Fraunces',serif;font-size:14px;color:#241B2F;text-align:center;margin:0 0 14px;line-height:1.5;}
@@ -127,15 +128,15 @@
     </div>
     <div class="header-info-line" id="headerAirtelLine" style="display:none;">
       <span id="headerAirtelText"></span>
-      <span>📱</span>
+      <svg class="header-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="1" width="10" height="22" rx="2"/></svg>
     </div>
     <div class="header-info-line" id="headerOrangeLine" style="display:none;">
       <span id="headerOrangeText"></span>
-      <span>📱</span>
+      <svg class="header-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="1" width="10" height="22" rx="2"/></svg>
     </div>
     <div class="header-info-line" id="headerAddressLine" style="display:none;">
       <span id="headerAddressText"></span>
-      <span>📍</span>
+      <svg class="header-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C7.58 2 4 5.58 4 10c0 6 8 12 8 12s8-6 8-12c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
     </div>
   </div>
 </header>
@@ -189,6 +190,16 @@ let modePaiementChoisi = null;
 let panierClientNom = '';
 let panierClientTel = '';
 
+function shortenReference(text){
+  if(!text) return '';
+  let t = String(text).trim();
+  t = t.replace(/^(en face de|à c[oô]té de|pr[eè]s de|devant|derri[eè]re|au niveau de)\s+(la |le |l['’])?/i, '').trim();
+  const words = t.split(/\s+/).filter(Boolean);
+  if(words.length <= 3) return t;
+  const short = [words[0], ...words.slice(-2)].join(' ');
+  return short.charAt(0).toUpperCase() + short.slice(1);
+}
+
 window.addEventListener('fb-ready', ()=>{
   const { db, collection, doc, onSnapshot, getDoc } = window.__fb;
   onSnapshot(collection(db,'articles'), snap=>{
@@ -204,7 +215,7 @@ window.addEventListener('fb-ready', ()=>{
       const a = meta.adresse || {};
       const addrParts = [a.quartier, a.ville].filter(Boolean);
       let addrText = addrParts.join(', ');
-      if(a.reference){ addrText += (addrText ? ', ' : '') + 'Réf: '+a.reference; }
+      if(a.reference){ addrText += (addrText ? ', ' : '') + 'Réf: '+shortenReference(a.reference); }
       const addressLine = document.getElementById('headerAddressLine');
       if(addrText){
         document.getElementById('headerAddressText').textContent = addrText;
