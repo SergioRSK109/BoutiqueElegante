@@ -14,19 +14,19 @@
     --shadow-md:0 10px 24px rgba(36,27,47,.1);
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
   h1,h2,h3,.display{font-family:'Fraunces',serif;}
   .mono{font-family:'IBM Plex Mono',monospace;}
   #app{max-width:1080px;margin:0 auto;padding:26px 18px 70px;}
-  .app-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
-  .app-header .brand{display:flex;align-items:baseline;gap:10px;}
+  .app-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+  .app-header .brand{display:flex;align-items:center;gap:10px;}
   .app-header h1{font-size:1.5rem;font-weight:600;margin:0;}
   .app-header .sub{color:var(--ink-soft);font-size:.8rem;}
   #connStatus.offline{color:var(--danger);}
-  .settings-btn{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:1rem;transition:border-color .18s ease,color .18s ease;}
+  .settings-btn{display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;width:44px;height:44px;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:border-color .18s ease,color .18s ease;}
   .settings-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .tabs{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap;border-bottom:1px solid var(--line);}
-  .tab-btn{background:none;border:none;cursor:pointer;padding:9px 14px;font-size:.86rem;font-weight:600;color:var(--ink-soft);border-radius:8px 8px 0 0;position:relative;top:1px;transition:color .18s ease;}
+  .tabs{display:flex;gap:6px;margin-bottom:26px;overflow-x:auto;flex-wrap:nowrap;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;}
+  .tab-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;flex:0 0 auto;white-space:nowrap;background:none;border:none;cursor:pointer;padding:9px 14px;font-size:.86rem;font-weight:600;color:var(--ink-soft);border-radius:8px 8px 0 0;position:relative;top:1px;transition:color .18s ease;}
   .tab-btn.active{color:var(--accent);background:var(--surface);border:1px solid var(--line);border-bottom:1px solid var(--surface);}
   .tab-btn .count{background:var(--accent);color:#fff;border-radius:999px;font-size:.65rem;padding:1px 6px;margin-left:5px;}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
@@ -43,10 +43,11 @@
   .tag-card .value.accent{color:var(--accent);} .tag-card .value.good{color:var(--good);} .tag-card .value.danger{color:var(--danger);}
   .tag-card .hint{font-size:.72rem;color:var(--ink-soft);margin-top:4px;}
   label{display:block;font-size:.76rem;font-weight:600;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
-  input[type=text],input[type=number],input[type=tel],select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:'Inter';font-size:.9rem;color:var(--ink);transition:border-color .18s ease;}
+  input[type=text],input[type=number],input[type=tel],select{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-family:'Inter';font-size:16px;color:var(--ink);transition:border-color .18s ease;}
   input:focus,select:focus{outline:2px solid var(--accent-light);outline-offset:1px;border-color:var(--accent);}
   .field{margin-bottom:14px;} .row{display:flex;gap:10px;} .row > .field{flex:1;}
-  button.btn{font-weight:600;font-size:.86rem;border-radius:8px;border:1px solid transparent;padding:10px 16px;cursor:pointer;font-family:'Inter';transition:background .18s ease,border-color .18s ease,color .18s ease,transform .1s ease;}
+  @media (max-width:480px){ .row{flex-direction:column;gap:0;} }
+  button.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;font-weight:600;font-size:.86rem;border-radius:8px;border:1px solid transparent;padding:10px 16px;cursor:pointer;font-family:'Inter';transition:background .18s ease,border-color .18s ease,color .18s ease,transform .1s ease;}
   button.btn:active{transform:translateY(1px);}
   .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#671f3c;} .btn-primary:disabled{background:#c9b7bf;cursor:not-allowed;}
   .btn-ghost{background:none;border:1px solid var(--line);color:var(--ink);} .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
@@ -63,11 +64,11 @@
   .selected-article .top .nom{font-weight:600;font-family:'Fraunces';font-size:1.05rem;}
   .selected-article .top button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:.78rem;text-decoration:underline;}
   .variant-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
-  .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';}
+  .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';}
   .chip.selected{background:var(--accent);color:#fff;border-color:var(--accent);} .chip.disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
-  .qty-stepper{display:flex;align-items:center;gap:10px;}
-  .qty-stepper button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:1.1rem;cursor:pointer;}
-  .qty-stepper input{width:60px;text-align:center;font-family:'IBM Plex Mono';font-weight:600;}
+  .qty-stepper{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .qty-stepper button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:1.1rem;cursor:pointer;}
+  .qty-stepper input{width:60px;text-align:center;font-family:'IBM Plex Mono';font-weight:600;font-size:16px;padding:8px 4px;border:1px solid var(--line);border-radius:8px;}
   .total-line{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:10px;border-top:1px dashed var(--line);}
   .total-line .lbl{font-size:.82rem;color:var(--ink-soft);} .total-line .val{font-family:'IBM Plex Mono';font-weight:700;font-size:1.3rem;color:var(--accent);}
   table{width:100%;border-collapse:collapse;font-size:.84rem;}
@@ -88,6 +89,23 @@
   .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
   .photo-thumb{width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block;}
   .photo-thumb-empty{width:38px;height:38px;border-radius:6px;background:var(--bg);border:1px solid var(--line);}
+
+  /* bascule tableau / cartes mobile (< 640px) */
+  .table-wrap{display:block;overflow-x:auto;}
+  .cards-wrap{display:none;}
+  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  @media (max-width:640px){
+    .table-wrap{display:none;}
+    .cards-wrap{display:block;}
+  }
+  .stock-card, .hist-card{margin-bottom:12px;}
+  .stock-card:last-child, .hist-card:last-child{margin-bottom:0;}
+  .stock-card-top{display:flex;gap:12px;align-items:flex-start;}
+  .stock-card-photo{width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex-shrink:0;}
+  .stock-card-photo-empty{width:52px;height:52px;border-radius:8px;background:var(--bg);border:1px solid var(--line);flex-shrink:0;}
+  .stock-card-info{flex:1;min-width:0;}
+  .stock-card-nom{font-family:'Fraunces',serif;font-weight:600;font-size:1rem;line-height:1.3;}
+  .stock-card-cat{color:var(--ink-soft);font-size:.78rem;margin-top:2px;}
   .crop-viewport{position:relative;width:280px;height:350px;max-width:100%;overflow:hidden;border-radius:10px;border:1px solid var(--line);background:#111;margin:0 auto;touch-action:none;cursor:grab;}
   .crop-viewport:active{cursor:grabbing;}
   .crop-viewport img{position:absolute;top:0;left:0;user-select:none;-webkit-user-drag:none;pointer-events:none;}
@@ -385,9 +403,9 @@ function renderDashboard(){
       <div class="card">
         <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Stock faible</div><span class="muted">seuil : ${state.meta.seuil}</span></div>
         ${s.lowStock.length===0? '<div class="empty">Aucun article en stock faible.</div>' : `
-          <table><thead><tr><th>Article</th><th>Variante</th><th class="num">Stock</th></tr></thead><tbody>
+          <div class="scroll-x"><table><thead><tr><th>Article</th><th>Variante</th><th class="num">Stock</th></tr></thead><tbody>
             ${s.lowStock.slice(0,8).map(x=>`<tr><td>${esc(x.article.nom)}</td><td>${esc(variantLabel(x.variant))}</td><td class="num"><span class="badge low">${x.variant.stock}</span></td></tr>`).join('')}
-          </tbody></table>
+          </tbody></table></div>
         `}
       </div>
       <div class="card">
@@ -401,11 +419,11 @@ function renderDashboard(){
     <div class="card" style="margin-top:16px;">
       <div class="section-title">Activité récente</div>
       ${activite.length===0? '<div class="empty">Aucune activité pour le moment.</div>' : `
-        <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th class="num">Qté</th><th class="num">Montant</th></tr></thead><tbody>
+        <div class="scroll-x"><table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th class="num">Qté</th><th class="num">Montant</th></tr></thead><tbody>
           ${activite.map(a=>`<tr><td class="mono muted">${fmtDate(a.date)}</td><td>${a.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
             <td>${esc(a.articleNom)}${a.taille||a.couleur?' <span class="muted">('+esc([a.taille,a.couleur].filter(Boolean).join(' / '))+')</span>':''}</td>
             <td class="num mono">${a.qte}</td><td class="num mono">${a.type==='vente'? money(a.total) : '−'+money(a.qte*(a.prixAchatUnit||0))}</td></tr>`).join('')}
-        </tbody></table>
+        </tbody></table></div>
       `}
     </div>
   `;
@@ -768,6 +786,13 @@ function renderPhotoField(){
 }
 
 function renderStock(){
+  if(state.articles.length===0){
+    return `
+      <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (0)</div>
+        <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
+      <div class="card"><div class="empty">Aucun article. Ajoute ton premier article.</div></div>
+    `;
+  }
   const rows = state.articles.map(a=>{
     const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
     const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
@@ -778,12 +803,38 @@ function renderStock(){
       <td class="num">${(a.variants||[]).length}</td><td class="num">${low?`<span class="badge low">${totalStock}</span>`:`<span class="badge ok">${totalStock}</span>`}</td>
       <td class="num"><button class="btn btn-ghost btn-sm" onclick="editArticle('${a.id}')">Modifier</button></td></tr>`;
   }).join('');
+  const cards = state.articles.map(a=>{
+    const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
+    const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
+    const thumb = a.photoUrl
+      ? `<img class="stock-card-photo" src="${esc(a.photoUrl)}" alt="" onerror="this.outerHTML='<div class=&quot;stock-card-photo-empty&quot;></div>';">`
+      : `<div class="stock-card-photo-empty"></div>`;
+    return `
+      <div class="card stock-card">
+        <div class="stock-card-top">
+          ${thumb}
+          <div class="stock-card-info">
+            <div class="stock-card-nom">${esc(a.nom)}</div>
+            <div class="stock-card-cat">${esc(a.categorie||'—')}</div>
+          </div>
+          ${low?`<span class="badge low">${totalStock}</span>`:`<span class="badge ok">${totalStock}</span>`}
+        </div>
+        <div class="flex-between" style="margin-top:10px;font-size:.84rem;">
+          <span class="muted">Achat <strong class="mono">${money(a.prixAchat)}</strong></span>
+          <span class="muted">Vente <strong class="mono">${money(a.prixVente)}</strong></span>
+        </div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="editArticle('${a.id}')">Modifier</button>
+      </div>
+    `;
+  }).join('');
   return `
     <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${state.articles.length})</div>
       <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
-    <div class="card">${state.articles.length===0? '<div class="empty">Aucun article. Ajoute ton premier article.</div>' : `
+    <div class="card table-wrap">
       <table><thead><tr><th></th><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
-      <tbody>${rows}</tbody></table>`}</div>
+      <tbody>${rows}</tbody></table>
+    </div>
+    <div class="cards-wrap">${cards}</div>
   `;
 }
 function editArticle(id){
@@ -965,7 +1016,7 @@ function renderHistorique(){
   if(histFilter==='pertes') items = items.filter(i=>i.type==='perte');
   const totalCA = state.ventes.reduce((s,v)=>s+(v.total||0),0);
   const totalPerte = state.pertes.reduce((s,p)=>s+(p.qte*(p.prixAchatUnit||0)),0);
-  return `
+  const header = `
     <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Historique</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-sm ${histFilter==='toutes'?'btn-primary':'btn-ghost'}" onclick="setHistFilter('toutes')">Toutes</button>
@@ -974,12 +1025,41 @@ function renderHistorique(){
         <button class="btn btn-sm btn-ghost" onclick="exporterCSV()">⬇ Exporter les données (CSV)</button>
       </div></div>
     <div class="muted" style="margin-bottom:10px;">Total ventes : <strong>${money(totalCA)}</strong> · Total pertes : <strong style="color:var(--danger)">${money(totalPerte)}</strong></div>
-    <div class="card">${items.length===0? '<div class="empty">Rien à afficher.</div>' : `
-      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th></tr></thead>
-      <tbody>${items.map(i=>`<tr><td class="mono muted">${fmtDate(i.date)}</td><td>${i.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
+  `;
+  if(items.length===0){
+    return header + '<div class="card"><div class="empty">Rien à afficher.</div></div>';
+  }
+  const rows = items.map(i=>`<tr><td class="mono muted">${fmtDate(i.date)}</td><td>${i.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
         <td>${esc(i.articleNom)}</td><td class="muted">${esc([i.taille,i.couleur].filter(Boolean).join(' / ')||'—')}</td><td class="num mono">${i.qte}</td>
         <td class="num mono">${i.type==='vente'? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0))}</td>
-        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td></tr>`).join('')}</tbody></table>`}</div>
+        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td></tr>`).join('');
+  const cards = items.map(i=>{
+    const badge = i.type==='vente' ? '<span class="badge ok">Vente</span>' : '<span class="badge low">Perte</span>';
+    const montant = i.type==='vente' ? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0));
+    const variante = [i.taille,i.couleur].filter(Boolean).join(' / ');
+    const who = i.type==='vente' ? (i.vendeuse||'—') : i.raison;
+    return `
+      <div class="card hist-card">
+        <div class="flex-between">
+          <span class="mono muted">${fmtDate(i.date)}</span>
+          ${badge}
+        </div>
+        <div style="font-weight:600;margin-top:6px;">${esc(i.articleNom)}</div>
+        ${variante ? `<div class="muted" style="font-size:.78rem;">${esc(variante)}</div>` : ''}
+        <div class="flex-between" style="margin-top:8px;">
+          <span class="muted">Qté ${i.qte}</span>
+          <span class="mono" style="font-weight:700;">${montant}</span>
+        </div>
+        <div class="muted" style="margin-top:4px;font-size:.78rem;">${esc(who)}</div>
+      </div>
+    `;
+  }).join('');
+  return header + `
+    <div class="card table-wrap">
+      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>
+    <div class="cards-wrap">${cards}</div>
   `;
 }
 function setHistFilter(f){ histFilter=f; render(); }
