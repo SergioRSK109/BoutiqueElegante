@@ -933,18 +933,43 @@ async function deleteArticle(id){
 /* ---------------------------------------------------------
    PRÉCOMMANDES
 --------------------------------------------------------- */
+let preFilter = 'attente';
+function setPreFilter(f){ preFilter=f; render(); }
 function renderPrecommandes(){
   const list = [...state.precommandes].sort((a,b)=> new Date(b.date)-new Date(a.date));
   if(list.length===0) return '<div class="card"><div class="empty">Aucune précommande pour le moment. Les commandes passées depuis le catalogue client apparaîtront ici.</div></div>';
-  return `
-    <div class="section-title">Précommandes (${list.length})</div>
+  const filtered = list.filter(p=>{
+    if(preFilter==='attente') return p.statut==='non_payé';
+    if(preFilter==='boutique') return p.statut==='payé_boutique' || p.statut==='payé';
+    if(preFilter==='mobile') return p.statut==='payé_mobile';
+    if(preFilter==='annule') return p.statut==='annulé';
+    return true;
+  });
+  const header = `
+    <div class="flex-between" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin:0;">Précommandes (${filtered.length})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm ${preFilter==='attente'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('attente')">En attente</button>
+        <button class="btn btn-sm ${preFilter==='boutique'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('boutique')">Payé en boutique</button>
+        <button class="btn btn-sm ${preFilter==='mobile'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('mobile')">Payé par mobile money</button>
+        <button class="btn btn-sm ${preFilter==='annule'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('annule')">Annulé</button>
+      </div>
+    </div>
+  `;
+  if(filtered.length===0) return header + '<div class="card"><div class="empty">Aucune précommande dans cette catégorie.</div></div>';
+  return header + `
     <div class="grid" style="gap:12px;">
-      ${list.map(p=> renderPrecommandeCard(p)).join('')}
+      ${filtered.map(p=> renderPrecommandeCard(p)).join('')}
     </div>
   `;
 }
 function renderPrecommandeCard(p){
-  const statutBadge = p.statut==='payé' ? '<span class="badge ok">Payé</span>' : p.statut==='annulé' ? '<span class="badge low">Annulé</span>' : '<span class="badge wait">Non payé</span>';
+  let statutBadge;
+  if(p.statut==='payé_boutique') statutBadge = '<span class="badge ok">Payé en boutique</span>';
+  else if(p.statut==='payé_mobile') statutBadge = '<span class="badge ok">Payé par Mobile Money</span>';
+  else if(p.statut==='payé') statutBadge = '<span class="badge ok">Payé</span>';
+  else if(p.statut==='annulé') statutBadge = '<span class="badge low">Annulé</span>';
+  else statutBadge = '<span class="badge wait">Non payé</span>';
   return `
     <div class="card">
       <div class="flex-between" style="margin-bottom:8px;">
@@ -963,14 +988,27 @@ function renderPrecommandeCard(p){
       <div class="total-line"><span class="lbl">Total</span><span class="val">${money(p.total)}</span></div>
       ${p.statut==='non_payé' ? `
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn btn-good" style="flex:1;" onclick="marquerPayee('${p.id}')">✓ Marquer payé (déduit le stock)</button>
+          <button class="btn btn-good" style="flex:1;" onclick="demanderModePaiementReel('${p.id}')">✓ Marquer payé (déduit le stock)</button>
           <button class="btn btn-ghost" onclick="annulerPrecommande('${p.id}')">Annuler</button>
         </div>
       ` : ''}
     </div>
   `;
 }
-async function marquerPayee(id){
+function demanderModePaiementReel(id){
+  openModal(`
+    <h3>Comment cette cliente a-t-elle payé ?</h3>
+    <p class="muted" style="margin-bottom:14px;">Le moyen choisi sur le catalogue n'est qu'une indication : confirme ici le moyen réellement utilisé.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-good" style="width:100%;" onclick="confirmerPaiement('${id}','boutique')">🏬 En boutique (espèces)</button>
+      <button class="btn btn-good" style="width:100%;" onclick="confirmerPaiement('${id}','mobile_money')">📱 Mobile Money (Airtel/Orange)</button>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button></div>
+  `);
+}
+async function confirmerPaiement(id, moyen){
+  closeModal();
+  const nouveauStatut = moyen==='boutique' ? 'payé_boutique' : 'payé_mobile';
   const { db, doc, runTransaction, collection } = window.__fb;
   try{
     await runTransaction(db, async (tx)=>{
@@ -1013,10 +1051,11 @@ async function marquerPayee(id){
           date: new Date().toISOString(), articleId: it.articleId, articleNom: it.articleNom,
           variantId: it.variantId, taille: it.taille||'', couleur: it.couleur||'',
           qte: it.qte, prixVenteUnit: it.prixVenteUnit, prixAchatUnit: art.prixAchat,
-          total, profit, vendeuse: pre.clientNom ? 'Précommande — '+pre.clientNom : 'Précommande', source: 'precommande'
+          total, profit, vendeuse: pre.clientNom ? 'Précommande — '+pre.clientNom : 'Précommande', source: 'precommande',
+          moyenPaiementReel: moyen
         });
       }
-      tx.update(preRef, { statut:'payé', datePaiement: new Date().toISOString() });
+      tx.update(preRef, { statut: nouveauStatut, datePaiement: new Date().toISOString() });
     });
     showTicket({title:'PRÉCOMMANDE PAYÉE', lines:[['Stock mis à jour',''],['Vente enregistrée','✓']]});
     render();
