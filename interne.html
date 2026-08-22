@@ -292,6 +292,19 @@ function todayISO(){ return new Date().toISOString(); }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
+function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0); }
+const JOURS_AUTO_CORBEILLE = 60;
+let autoCorbeilleChecked = false;
+async function runAutoCorbeille(){
+  const { db, doc, updateDoc } = window.__fb;
+  const seuil = Date.now() - JOURS_AUTO_CORBEILLE*86400000;
+  const candidats = state.articles.filter(a=> !a.supprime && totalStock(a)===0 && a.stockZeroDepuis && new Date(a.stockZeroDepuis).getTime()<=seuil);
+  for(const a of candidats){
+    try{
+      await updateDoc(doc(db,'articles',a.id), { supprime:true, supprimeLe: new Date().toISOString(), supprimeRaison:'stock_zero_60_jours' });
+    }catch(e){ console.error('auto-corbeille error pour', a.id, e); }
+  }
+}
 function libelleModePaiement(mode){
   if(mode==='boutique') return 'Paiement en boutique (espèces)';
   if(mode==='airtel') return 'Airtel Money';
@@ -332,6 +345,7 @@ window.addEventListener('fb-ready', () => {
   onSnapshot(collection(db,'articles'), snap=>{
     state.articles = snap.docs.map(d=> ({id:d.id, ...d.data()}));
     state.loaded = true; render();
+    if(!autoCorbeilleChecked){ autoCorbeilleChecked = true; runAutoCorbeille(); }
   }, err=> console.error('articles snapshot error', err));
 
   onSnapshot(query(collection(db,'ventes'), orderBy('date','desc')), snap=>{
@@ -385,7 +399,7 @@ function render(){
 --------------------------------------------------------- */
 function computeStats(){
   let valeurAchat=0, valeurVente=0, stockUnits=0; const lowStock=[];
-  state.articles.forEach(a=> (a.variants||[]).forEach(v=>{
+  state.articles.filter(a=> !a.supprime).forEach(a=> (a.variants||[]).forEach(v=>{
     valeurAchat += (v.stock||0)*(a.prixAchat||0);
     valeurVente += (v.stock||0)*(a.prixVente||0);
     stockUnits += (v.stock||0);
@@ -509,7 +523,7 @@ function renderSearchResults(results, ctx){
 }
 function onSearch(ctx, q){
   state[ctx].query = q;
-  state[ctx].results = q.trim().length===0? [] : state.articles.filter(a=> a.nom.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  state[ctx].results = q.trim().length===0? [] : state.articles.filter(a=> !a.supprime && a.nom.toLowerCase().includes(q.toLowerCase())).slice(0,8);
   const box = document.getElementById(ctx+'Results'); if(box) box.innerHTML = renderSearchResults(state[ctx].results, ctx);
 }
 function selectArticle(ctx,id){ state[ctx].article = state.articles.find(x=>x.id===id); state[ctx].variantId=null; state[ctx].qte=1; render(); }
@@ -527,11 +541,15 @@ async function submitVente(){
       const artSnap = await tx.get(artRef);
       if(!artSnap.exists()) throw new Error('Article introuvable.');
       const art = artSnap.data();
+      const stockAvant = totalStock(art);
       const variants = art.variants.map(vr=> vr.id===v.variantId ? {...vr} : vr);
       const variant = variants.find(vr=> vr.id===v.variantId);
       if(!variant || variant.stock < v.qte) throw new Error('Stock insuffisant (peut-être vendu entre-temps).');
       variant.stock -= v.qte;
-      tx.update(artRef, { variants });
+      const stockApres = variants.reduce((s,vr)=>s+(vr.stock||0),0);
+      const artUpdate = { variants };
+      if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+      tx.update(artRef, artUpdate);
       const venteRef = doc(collection(db,'ventes'));
       const total = v.qte*art.prixVente, profit = v.qte*(art.prixVente-art.prixAchat);
       tx.set(venteRef, {
@@ -609,11 +627,15 @@ async function submitPerte(){
       const artSnap = await tx.get(artRef);
       if(!artSnap.exists()) throw new Error('Article introuvable.');
       const art = artSnap.data();
+      const stockAvant = totalStock(art);
       const variants = art.variants.map(vr=> vr.id===p.variantId? {...vr}:vr);
       const variant = variants.find(vr=> vr.id===p.variantId);
       if(!variant || variant.stock < p.qte) throw new Error('Stock insuffisant.');
       variant.stock -= p.qte;
-      tx.update(artRef, { variants });
+      const stockApres = variants.reduce((s,vr)=>s+(vr.stock||0),0);
+      const artUpdate = { variants };
+      if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+      tx.update(artRef, artUpdate);
       const perteRef = doc(collection(db,'pertes'));
       tx.set(perteRef, {
         date: new Date().toISOString(), articleId: p.article.id, articleNom: art.nom,
@@ -809,14 +831,15 @@ function renderPhotoField(){
 }
 
 function renderStock(){
-  if(state.articles.length===0){
+  const articlesActifs = state.articles.filter(a=> !a.supprime);
+  if(articlesActifs.length===0){
     return `
       <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (0)</div>
         <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
       <div class="card"><div class="empty">Aucun article. Ajoute ton premier article.</div></div>
     `;
   }
-  const rows = state.articles.map(a=>{
+  const rows = articlesActifs.map(a=>{
     const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
     const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
     const thumb = a.photoUrl
@@ -826,7 +849,7 @@ function renderStock(){
       <td class="num">${(a.variants||[]).length}</td><td class="num">${low?`<span class="badge low">${totalStock}</span>`:`<span class="badge ok">${totalStock}</span>`}</td>
       <td class="num"><button class="btn btn-ghost btn-sm" onclick="editArticle('${a.id}')">Modifier</button></td></tr>`;
   }).join('');
-  const cards = state.articles.map(a=>{
+  const cards = articlesActifs.map(a=>{
     const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
     const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
     const thumb = a.photoUrl
@@ -851,7 +874,7 @@ function renderStock(){
     `;
   }).join('');
   return `
-    <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${state.articles.length})</div>
+    <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${articlesActifs.length})</div>
       <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
     <div class="card table-wrap">
       <table><thead><tr><th></th><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
@@ -883,7 +906,7 @@ function renderArticleModal(){
     <div id="variantsWrap">${d.variants.map(v=>renderVariantRow(v)).join('')}</div>
     <button class="btn btn-ghost btn-sm" onclick="addVariantRow()">+ Ajouter une variante</button>
     <div class="modal-actions">
-      ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">Supprimer</button>`:''}
+      ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">🗑 Mettre à la corbeille</button>`:''}
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
       <button class="btn btn-primary" onclick="saveArticleForm()">Enregistrer</button>
     </div>
@@ -914,7 +937,13 @@ async function saveArticleForm(){
     stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
   }));
   const { db, doc, setDoc, addDoc, collection } = window.__fb;
-  const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants };
+  const existingArticle = articleFormDraft.id ? state.articles.find(x=>x.id===articleFormDraft.id) : null;
+  const stockAvant = existingArticle ? totalStock(existingArticle) : 0;
+  const stockApres = variants.reduce((s,v)=>s+(v.stock||0),0);
+  let stockZeroDepuis = existingArticle ? (existingArticle.stockZeroDepuis || null) : null;
+  if(stockApres>0) stockZeroDepuis = null;
+  else if(stockAvant>0 && stockApres===0) stockZeroDepuis = new Date().toISOString();
+  const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants, stockZeroDepuis };
   if(articleFormDraft.id){ await setDoc(doc(db,'articles',articleFormDraft.id), record); }
   else{ await addDoc(collection(db,'articles'), record); }
   if(categorie && !state.meta.categories.includes(categorie)){
@@ -924,9 +953,9 @@ async function saveArticleForm(){
   closeModal(); render();
 }
 async function deleteArticle(id){
-  if(!confirm('Supprimer définitivement cet article ?')) return;
-  const { db, doc, deleteDoc } = window.__fb;
-  await deleteDoc(doc(db,'articles',id));
+  if(!confirm('Mettre cet article à la corbeille ? Tu pourras le restaurer depuis les Réglages.')) return;
+  const { db, doc, updateDoc } = window.__fb;
+  await updateDoc(doc(db,'articles',id), { supprime:true, supprimeLe: new Date().toISOString(), supprimeRaison:'manuel' });
   closeModal(); render();
 }
 
@@ -1040,7 +1069,11 @@ async function confirmerPaiement(id, moyen){
       }
       // écrire les mises à jour de stock
       for(const artId in workingVariants){
-        tx.update(artRefs[artId], { variants: workingVariants[artId] });
+        const stockAvant = totalStock(artData[artId]);
+        const stockApres = workingVariants[artId].reduce((s,vr)=>s+(vr.stock||0),0);
+        const artUpdate = { variants: workingVariants[artId] };
+        if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+        tx.update(artRefs[artId], artUpdate);
       }
       // créer les ventes correspondantes
       for(const it of pre.items){
@@ -1198,7 +1231,48 @@ function openSettings(){
     <div class="row"><div class="field"><label>Numéro Airtel Money</label><input type="tel" id="s_airtel" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.airtel)||'')}" placeholder="0971080048"></div>
       <div class="field"><label>Numéro Orange Money</label><input type="tel" id="s_orange" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.orange)||'')}" placeholder="0841747264"></div></div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+    <label style="margin-top:0;">Corbeille</label>
+    <div id="corbeilleSection">${renderCorbeilleSection()}</div>
   `);
+}
+function libelleSuppressionRaison(raison){
+  if(raison==='stock_zero_60_jours') return 'Stock à 0 depuis plus de 60 jours (automatique)';
+  if(raison==='manuel') return 'Suppression manuelle';
+  return raison || '—';
+}
+function renderCorbeilleSection(){
+  const corbeille = state.articles.filter(a=> a.supprime);
+  if(corbeille.length===0) return '<div class="muted" style="font-size:.82rem;">La corbeille est vide.</div>';
+  return corbeille.map(a=> `
+    <div class="card" style="padding:12px 14px;margin-bottom:8px;">
+      <div class="flex-between">
+        <strong>${esc(a.nom)}</strong>
+        <span class="muted mono" style="font-size:.74rem;">${fmtDate(a.supprimeLe)}</span>
+      </div>
+      <div class="muted" style="font-size:.78rem;margin-top:2px;">${esc(libelleSuppressionRaison(a.supprimeRaison))}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="restaurerArticle('${a.id}')">↩ Restaurer</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--danger);" onclick="supprimerDefinitivement('${a.id}')">Supprimer définitivement</button>
+      </div>
+    </div>
+  `).join('');
+}
+function refreshCorbeilleSection(){
+  const el = document.getElementById('corbeilleSection');
+  if(el) el.innerHTML = renderCorbeilleSection();
+  render();
+}
+async function restaurerArticle(id){
+  const { db, doc, updateDoc } = window.__fb;
+  await updateDoc(doc(db,'articles',id), { supprime:false, supprimeLe:null, supprimeRaison:null, stockZeroDepuis:null });
+  refreshCorbeilleSection();
+}
+async function supprimerDefinitivement(id){
+  if(!confirm('Supprimer définitivement cet article ? Cette action est irréversible.')) return;
+  const { db, doc, deleteDoc } = window.__fb;
+  await deleteDoc(doc(db,'articles',id));
+  refreshCorbeilleSection();
 }
 async function saveSettings(){
   const nomBoutique = document.getElementById('s_titre').value.trim() || 'Atelier — Gestion';
