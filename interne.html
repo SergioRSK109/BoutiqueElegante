@@ -669,7 +669,26 @@ function onPhotoFileSelected(file){
   openCropModal(file);
 }
 
+function syncDraftFromForm(){
+  const nomEl = document.getElementById('f_nom');
+  if(!nomEl || !articleFormDraft) return;
+  articleFormDraft.nom = nomEl.value;
+  articleFormDraft.categorie = document.getElementById('f_cat').value;
+  articleFormDraft.prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
+  articleFormDraft.prixVente = parseFloat(document.getElementById('f_vente').value)||0;
+  articleFormDraft.variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>({
+    id: row.dataset.vid,
+    taille: row.querySelector('[data-field=taille]').value,
+    couleur: row.querySelector('[data-field=couleur]').value,
+    stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
+  }));
+}
+
 function openCropModal(file){
+  // le formulaire article (encore affiché à cet instant) va être remplacé par la
+  // modale de recadrage : on récupère d'abord ce que l'utilisatrice a déjà tapé
+  // (nom, catégorie, prix, variantes) pour ne pas le perdre au retour du recadrage.
+  syncDraftFromForm();
   const objectUrl = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -796,6 +815,10 @@ async function uploadCroppedPhoto(blob){
       </div>
     `;
   }
+  // empêche d'enregistrer l'article avant la fin de l'envoi, sans quoi la photo
+  // n'est pas encore sur articleFormDraft.photoUrl au moment de la sauvegarde.
+  const saveBtn = document.getElementById('btnSaveArticle');
+  if(saveBtn) saveBtn.disabled = true;
   try{
     const url = await uploadToImgbb(blob);
     articleFormDraft.photoUrl = url;
@@ -805,6 +828,8 @@ async function uploadCroppedPhoto(blob){
     URL.revokeObjectURL(localUrl);
     const w = document.getElementById('photoFieldWrap');
     if(w) w.innerHTML = renderPhotoField();
+    const btn = document.getElementById('btnSaveArticle');
+    if(btn) btn.disabled = false;
   }
 }
 
@@ -912,7 +937,7 @@ function renderArticleModal(){
     <div class="modal-actions">
       ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">🗑 Mettre à la corbeille</button>`:''}
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary" onclick="saveArticleForm()">Enregistrer</button>
+      <button class="btn btn-primary" id="btnSaveArticle" onclick="saveArticleForm()">Enregistrer</button>
     </div>
   `;
 }
