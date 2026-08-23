@@ -762,7 +762,6 @@ function onCropZoom(val){
 
 function cancelCrop(){
   if(cropState){ URL.revokeObjectURL(cropState.objectUrl); cropState = null; }
-  document.getElementById('f_photo_file').value = '';
   closeModal();
   openModal(renderArticleModal());
 }
@@ -781,7 +780,6 @@ async function confirmCrop(){
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
   URL.revokeObjectURL(cs.objectUrl);
   cropState = null;
-  document.getElementById('f_photo_file').value = '';
   closeModal();
   openModal(renderArticleModal());
   await uploadCroppedPhoto(blob);
