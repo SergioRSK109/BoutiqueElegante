@@ -73,6 +73,8 @@
   .btn-danger{background:var(--danger);color:#fff;} .btn-danger:hover{background:#8a361f;}
   .btn-good{background:var(--good);color:#fff;}
   .btn-sm{padding:6px 10px;font-size:.76rem;}
+  .icon-btn{background:none;border:1px solid var(--line);color:var(--ink-soft);width:32px;height:32px;min-height:32px;padding:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:.92rem;cursor:pointer;transition:border-color .18s ease,color .18s ease,background .18s ease;}
+  .icon-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(168,67,47,.06);}
   .search-results{margin-top:8px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
   .search-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;transition:background .15s ease;}
   .search-item:last-child{border-bottom:none;} .search-item:hover{background:var(--bg);}
@@ -1490,7 +1492,8 @@ function renderHistorique(){
   const rows = items.map(i=>`<tr><td class="mono muted">${fmtDate(i.date)}</td><td>${i.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
         <td>${esc(i.articleNom)}</td><td class="muted">${esc([i.taille,i.couleur].filter(Boolean).join(' / ')||'—')}</td><td class="num mono">${i.qte}</td>
         <td class="num mono">${i.type==='vente'? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0))}</td>
-        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td></tr>`).join('');
+        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td>
+        <td class="num"><button class="icon-btn" title="Supprimer" onclick="demanderSuppressionHistorique('${i.type}','${i.id}')">🗑</button></td></tr>`).join('');
   const cards = items.map(i=>{
     const badge = i.type==='vente' ? '<span class="badge ok">Vente</span>' : '<span class="badge low">Perte</span>';
     const montant = i.type==='vente' ? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0));
@@ -1500,7 +1503,10 @@ function renderHistorique(){
       <div class="card hist-card">
         <div class="flex-between">
           <span class="mono muted">${fmtDate(i.date)}</span>
-          ${badge}
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${badge}
+            <button class="icon-btn" title="Supprimer" onclick="demanderSuppressionHistorique('${i.type}','${i.id}')">🗑</button>
+          </div>
         </div>
         <div style="font-weight:600;margin-top:6px;">${esc(i.articleNom)}</div>
         ${variante ? `<div class="muted" style="font-size:.78rem;">${esc(variante)}</div>` : ''}
@@ -1514,13 +1520,62 @@ function renderHistorique(){
   }).join('');
   return header + `
     <div class="card table-wrap">
-      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
     <div class="cards-wrap">${cards}</div>
   `;
 }
 function setHistFilter(f){ histFilter=f; render(); }
+
+function demanderSuppressionHistorique(type, id){
+  const list = type==='vente' ? state.ventes : state.pertes;
+  const item = list.find(x=>x.id===id);
+  if(!item) return;
+  const variante = [item.taille,item.couleur].filter(Boolean).join(' / ') || 'Standard';
+  const label = type==='vente' ? 'vente' : 'perte';
+  const precommandeNote = (type==='vente' && item.source==='precommande')
+    ? `<p style="color:var(--danger);font-size:.84rem;margin-top:10px;">Cette vente provient d'une précommande validée — la précommande associée restera marquée payée mais n'aura plus de vente correspondante.</p>`
+    : '';
+  openModal(`
+    <h3>Supprimer cette ${label} ?</h3>
+    <p class="muted">Le stock de <strong>${esc(item.articleNom)}</strong> (${esc(variante)}) sera automatiquement recrédité de <strong>${item.qte}</strong> unité(s). Cette action est irréversible.</p>
+    ${precommandeNote}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="supprimerHistorique('${type}','${id}')">Supprimer définitivement</button>
+    </div>
+  `);
+}
+async function supprimerHistorique(type, id){
+  closeModal();
+  const { db, doc, runTransaction } = window.__fb;
+  let stockRestitue = true;
+  try{
+    await runTransaction(db, async (tx)=>{
+      const ref = doc(db, type==='vente' ? 'ventes' : 'pertes', id);
+      const snap = await tx.get(ref);
+      if(!snap.exists()) throw new Error("Cet enregistrement n'existe plus (peut-être déjà supprimé).");
+      const item = snap.data();
+      const artRef = doc(db,'articles', item.articleId);
+      const artSnap = await tx.get(artRef);
+      if(artSnap.exists() && (artSnap.data().variants||[]).some(v=>v.id===item.variantId)){
+        const art = artSnap.data();
+        const stockAvant = totalStock(art);
+        const variants = art.variants.map(v=> v.id===item.variantId ? {...v, stock:(v.stock||0)+item.qte} : v);
+        const stockApres = variants.reduce((s,v)=>s+(v.stock||0),0);
+        const artUpdate = { variants };
+        if(stockAvant===0 && stockApres>0) artUpdate.stockZeroDepuis = null;
+        tx.update(artRef, artUpdate);
+      } else {
+        stockRestitue = false;
+      }
+      tx.delete(ref);
+    });
+    render();
+    if(!stockRestitue) alert("L'enregistrement a été supprimé, mais le stock n'a pas pu être recrédité automatiquement car l'article ou la variante concernée n'existe plus.");
+  }catch(e){ alert(e.message || 'Erreur lors de la suppression.'); }
+}
 
 /* ---------------------------------------------------------
    EXPORT CSV
