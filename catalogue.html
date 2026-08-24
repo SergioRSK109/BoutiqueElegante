@@ -167,6 +167,7 @@
 
 <div id="modal-root"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -199,6 +200,8 @@ let panier = []; // {articleId, articleNom, variantId, taille, couleur, qte, pri
 let modePaiementChoisi = null;
 let panierClientNom = '';
 let panierClientTel = '';
+let factureCtx = null; // { commandeId, message, waLink } de la facture actuellement ouverte
+let factureImageBlob = null; // image JPEG de la facture, générée à la demande puis mise en cache
 
 function shortenReference(text){
   if(!text) return '';
@@ -633,6 +636,8 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
   const pmTexte = paiementMobileTexte();
   if(pmTexte){ message += `\n\n${pmTexte}`; }
   const waLink = meta.whatsapp ? `https://wa.me/${meta.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}` : null;
+  factureCtx = { commandeId, message, waLink };
+  factureImageBlob = null;
   return `
     <div id="printArea">
       <div class="facture">
@@ -656,12 +661,78 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
       </div>
     </div>
     <p class="muted" style="margin-top:14px;font-size:.82rem;">Envoyez cette facture à la boutique pour réserver vos articles, puis passez payer et récupérer sur place.</p>
+    ${renderFactureActionsHtml()}
+  `;
+}
+
+function supportsNativeShareFiles(){
+  try{
+    if(!navigator.share || !navigator.canShare) return false;
+    const testFile = new File(['test'], 'test.jpg', { type:'image/jpeg' });
+    return navigator.canShare({ files:[testFile] });
+  }catch(e){ return false; }
+}
+
+function renderFactureActionsHtml(){
+  const nativeShare = supportsNativeShareFiles();
+  const waBtn = factureCtx && factureCtx.waLink
+    ? `<a class="btn btn-whatsapp" href="${factureCtx.waLink}" target="_blank" style="text-decoration:none;display:inline-block;">Envoyer sur WhatsApp</a>`
+    : '';
+  return `
     <div class="modal-actions" style="flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimer / enregistrer en PDF</button>
-      ${waLink ? `<a class="btn btn-whatsapp" href="${waLink}" target="_blank" style="text-decoration:none;display:inline-block;">Envoyer sur WhatsApp</a>` : ''}
+      ${nativeShare
+        ? `<button class="btn btn-whatsapp" onclick="partagerFactureNative(this)">📤 Partager la facture</button>`
+        : `${waBtn}<button class="btn btn-ghost" onclick="telechargerFactureImage(this)">Télécharger la facture</button>`}
       <button class="btn btn-primary" onclick="closeModal()">Terminé</button>
+      ${!nativeShare ? `<p class="muted" style="width:100%;margin:4px 0 0;font-size:.78rem;">Envoyez ce texte sur WhatsApp, puis joignez cette image téléchargée manuellement.</p>` : ''}
     </div>
   `;
+}
+
+async function genererImageFacture(){
+  if(factureImageBlob) return factureImageBlob;
+  if(typeof html2canvas === 'undefined') return null;
+  const el = document.getElementById('printArea');
+  if(!el) return null;
+  const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+  factureImageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  return factureImageBlob;
+}
+
+async function partagerFactureNative(btn){
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Préparation...';
+  try{
+    const blob = await genererImageFacture();
+    if(!blob) throw new Error('image indisponible');
+    const file = new File([blob], `facture-${factureCtx.commandeId}.jpg`, { type:'image/jpeg' });
+    await navigator.share({ files:[file], text: factureCtx.message, title: `Facture #${factureCtx.commandeId}` });
+  }catch(err){
+    if(!err || err.name !== 'AbortError'){
+      alert("Le partage n'a pas pu aboutir. Vous pouvez utiliser les boutons Imprimer ou WhatsApp.");
+    }
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function telechargerFactureImage(btn){
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Préparation...';
+  try{
+    const blob = await genererImageFacture();
+    if(!blob) throw new Error('image indisponible');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `facture-${factureCtx.commandeId}.jpg`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  }catch(err){
+    alert("Impossible de générer l'image de la facture. Vous pouvez utiliser le bouton Imprimer.");
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 function openModal(html){ document.getElementById('modal-root').innerHTML = `<div class="modal-bg" onclick="if(event.target===this) closeModal()"><div class="modal">${html}</div></div>`; }
