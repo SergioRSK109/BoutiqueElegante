@@ -36,11 +36,11 @@
   /* bandeau défilant */
   .carousel-wrap{margin-bottom:28px;}
   .carousel-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft);margin:0 0 10px;font-weight:600;text-align:center;}
-  .carousel-viewport{overflow:hidden;padding:2px 2px 10px;}
-  .carousel-track{display:flex;gap:12px;width:max-content;animation:carousel-scroll 20s linear infinite;}
-  .carousel-track.paused{animation-play-state:paused;}
-  @keyframes carousel-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-  .carousel-item{flex:0 0 auto;width:148px;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;}
+  .carousel-viewport{overflow:hidden;padding:2px 2px 10px;touch-action:pan-y;}
+  .carousel-track{display:flex;gap:12px;width:max-content;cursor:grab;}
+  .carousel-track.dragging{cursor:grabbing;}
+  .carousel-item{flex:0 0 auto;width:148px;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;user-select:none;-webkit-user-drag:none;}
+  .carousel-item .photo{-webkit-user-drag:none;}
   .carousel-item:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--accent-light);}
   .carousel-item .photo{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg);}
   .carousel-item .info{padding:9px 11px 11px;}
@@ -331,7 +331,7 @@ function renderCarousel(){
   wrap.style.display='';
   const itemHtml = a => `
         <div class="carousel-item" onclick="openArticle('${a.id}')">
-          <img class="photo" src="${esc(a.photoUrl)}" alt="${esc(a.nom)}" loading="lazy">
+          <img class="photo" src="${esc(a.photoUrl)}" alt="${esc(a.nom)}" loading="lazy" draggable="false">
           <div class="info">
             <div class="nom">${esc(a.nom)}</div>
             <div class="prix">${money(a.prixVente)}</div>
@@ -348,27 +348,115 @@ function renderCarousel(){
   setupCarouselAutoScroll();
 }
 
-let carouselResumeTimer = null;
+let carouselRafId = null;
 function setupCarouselAutoScroll(){
   const track = document.getElementById('carouselTrack');
   const viewport = track ? track.parentElement : null;
   if(!track || !viewport) return;
+  if(carouselRafId){ cancelAnimationFrame(carouselRafId); carouselRafId = null; }
+
   // Vitesse en px/s : assez lente pour rester lisible (nom + prix) pendant le défilement continu.
-  const CAROUSEL_SPEED_PX_S = 17.5;
-  const setWidth = track.scrollWidth / 2;
-  const duration = Math.max(setWidth / CAROUSEL_SPEED_PX_S, 4);
-  track.style.animationDuration = duration + 's';
-  const pause = ()=>{ track.classList.add('paused'); if(carouselResumeTimer){ clearTimeout(carouselResumeTimer); carouselResumeTimer=null; } };
-  const scheduleResume = ()=>{
-    if(carouselResumeTimer) clearTimeout(carouselResumeTimer);
-    carouselResumeTimer = setTimeout(()=>{ track.classList.remove('paused'); carouselResumeTimer=null; }, 2500);
-  };
-  viewport.addEventListener('pointerdown', pause);
-  viewport.addEventListener('pointerup', scheduleResume);
-  viewport.addEventListener('pointercancel', scheduleResume);
-  viewport.addEventListener('pointerleave', scheduleResume);
-  viewport.addEventListener('touchstart', pause, {passive:true});
-  viewport.addEventListener('touchend', scheduleResume, {passive:true});
+  const AUTO_SPEED_PX_S = 17.5;
+  const FRICTION_PER_16MS = 0.95; // décélération du flick (glissement rapide) à chaque frame ~60fps
+  const RESUME_DELAY_MS = 2500; // délai d'inactivité avant reprise du défilement auto
+  const TAP_THRESHOLD_PX = 8; // en-deçà : c'est un clic/tap, pas un glissement
+
+  const setWidth = track.scrollWidth / 2; // largeur d'une série (le contenu est dupliqué x2 pour la boucle)
+  let pos = 0; // décalage horizontal courant (translateX), toujours dans ]-setWidth, 0]
+  let paused = false; // vrai pendant le doigt posé + le court délai d'inactivité qui suit
+  let dragging = false;
+  let momentumV = 0; // px/ms, vitesse résiduelle après un glissement rapide (fast-forward / marche arrière rapide)
+  let lastTs = null;
+  let resumeTimer = null;
+  let lastDragEndAt = 0;
+  let startX = 0, startPos = 0, moved = 0;
+  let samples = [];
+
+  function wrap(){
+    if(setWidth <= 0) return;
+    while(pos <= -setWidth) pos += setWidth;
+    while(pos > 0) pos -= setWidth;
+  }
+  function applyTransform(){ track.style.transform = `translateX(${pos}px)`; }
+
+  function frame(ts){
+    if(lastTs===null) lastTs = ts;
+    const dt = Math.min(ts - lastTs, 100);
+    lastTs = ts;
+    if(!dragging){
+      if(Math.abs(momentumV) > 0.02){
+        pos += momentumV * dt;
+        momentumV *= Math.pow(FRICTION_PER_16MS, dt/16.67);
+        if(Math.abs(momentumV) <= 0.02) momentumV = 0;
+        wrap(); applyTransform();
+      } else if(!paused){
+        pos -= (AUTO_SPEED_PX_S/1000) * dt;
+        wrap(); applyTransform();
+      }
+    }
+    carouselRafId = requestAnimationFrame(frame);
+  }
+  carouselRafId = requestAnimationFrame(frame);
+
+  function pause(){
+    paused = true;
+    if(resumeTimer){ clearTimeout(resumeTimer); resumeTimer=null; }
+  }
+  function scheduleResume(){
+    if(resumeTimer) clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(()=>{ paused = false; resumeTimer=null; }, RESUME_DELAY_MS);
+  }
+
+  function pointerX(e){ return e.touches ? e.touches[0].clientX : e.clientX; }
+
+  function onDown(e){
+    dragging = true;
+    momentumV = 0;
+    moved = 0;
+    startX = pointerX(e);
+    startPos = pos;
+    samples = [{x:startX, t:performance.now()}];
+    track.classList.add('dragging');
+    pause();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const x = pointerX(e);
+    const dx = x - startX;
+    moved = Math.max(moved, Math.abs(dx));
+    pos = startPos + dx;
+    wrap(); applyTransform();
+    samples.push({x, t:performance.now()});
+    if(samples.length>5) samples.shift();
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    if(samples.length>=2){
+      const first = samples[0], last = samples[samples.length-1];
+      const dt = last.t - first.t;
+      if(dt>0){
+        const v = (last.x - first.x) / dt; // px/ms — un flick rapide donne une vitesse élevée -> avance/recule vite
+        if(Math.abs(v) > 0.05) momentumV = v;
+      }
+    }
+    if(moved > TAP_THRESHOLD_PX) lastDragEndAt = Date.now();
+    scheduleResume();
+  }
+
+  // Écran unique et permanent (plutôt qu'un listener "une fois") : évite qu'un clic fantôme
+  // reste piégé si le navigateur avale lui-même le clic après un glissement rapide (ex. drag natif d'une image).
+  function onClickCapture(ev){
+    if(Date.now() - lastDragEndAt < 300){ ev.preventDefault(); ev.stopPropagation(); }
+  }
+  viewport.addEventListener('click', onClickCapture, true);
+  viewport.addEventListener('dragstart', e=>e.preventDefault());
+
+  viewport.addEventListener('pointerdown', onDown);
+  viewport.addEventListener('pointermove', onMove);
+  viewport.addEventListener('pointerup', onUp);
+  viewport.addEventListener('pointercancel', onUp);
 }
 
 function renderGrid(){
