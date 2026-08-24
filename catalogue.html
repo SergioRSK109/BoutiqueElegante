@@ -354,7 +354,7 @@ function setupCarouselAutoScroll(){
   const viewport = track ? track.parentElement : null;
   if(!track || !viewport) return;
   // Vitesse en px/s : assez lente pour rester lisible (nom + prix) pendant le défilement continu.
-  const CAROUSEL_SPEED_PX_S = 70;
+  const CAROUSEL_SPEED_PX_S = 35;
   const setWidth = track.scrollWidth / 2;
   const duration = Math.max(setWidth / CAROUSEL_SPEED_PX_S, 4);
   track.style.animationDuration = duration + 's';
