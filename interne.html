@@ -110,6 +110,16 @@
   .variant-photo-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;border:1px dashed var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-size:.8rem;padding:0;color:var(--ink-soft);}
   .variant-photo-thumb{display:inline-flex;width:32px;height:32px;flex-shrink:0;border-radius:6px;overflow:hidden;cursor:pointer;border:1px solid var(--line);padding:0;background:none;}
   .variant-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .color-select-btn{display:flex;align-items:center;gap:6px;flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Inter';font-size:.8rem;color:var(--ink);}
+  .color-select-btn .color-select-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;}
+  .color-select-btn .color-select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .color-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:10px;margin:14px 0;}
+  .color-swatch-btn{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:6px 2px;border-radius:8px;}
+  .color-swatch-btn:hover{background:var(--bg);}
+  .color-swatch-btn .swatch{width:32px;height:32px;border-radius:50%;border:1px solid rgba(0,0,0,.15);box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:.85rem;}
+  .color-swatch-btn.selected .swatch{outline:2px solid var(--accent);outline-offset:2px;}
+  .color-swatch-btn .label{font-size:.64rem;color:var(--ink-soft);text-align:center;line-height:1.15;}
+  .color-swatch-btn.selected .label{color:var(--accent);font-weight:600;}
   #ticket-toast{position:fixed;top:20px;right:20px;max-width:280px;background:var(--surface);border:1px dashed var(--ink);border-radius:6px;padding:14px 16px;font-family:'IBM Plex Mono';font-size:.78rem;box-shadow:0 8px 24px rgba(36,27,47,.18);transform:translateX(340px);opacity:0;transition:all .35s ease;z-index:50;}
   #ticket-toast.show{transform:translateX(0);opacity:1;}
   #ticket-toast .t-title{font-weight:700;margin-bottom:6px;} #ticket-toast .t-line{display:flex;justify-content:space-between;color:var(--ink-soft);} #ticket-toast hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
@@ -723,7 +733,7 @@ function syncDraftFromForm(){
     return {
       id: vid,
       taille: row.querySelector('[data-field=taille]').value,
-      couleur: row.querySelector('[data-field=couleur]').value,
+      couleur: (existing && existing.couleur) || '',
       stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
       photoUrl: (existing && existing.photoUrl) || ''
     };
@@ -1032,11 +1042,116 @@ function renderArticleModal(){
     </div>
   `;
 }
+const COULEURS_PALETTE = [
+  {nom:'Noir', hex:'#1a1a1a'},
+  {nom:'Blanc', hex:'#ffffff'},
+  {nom:'Gris', hex:'#8e8e8e'},
+  {nom:'Gris clair', hex:'#d3d3d3'},
+  {nom:'Gris anthracite', hex:'#383838'},
+  {nom:'Beige', hex:'#e8dcc8'},
+  {nom:'Camel', hex:'#c19a6b'},
+  {nom:'Marron', hex:'#7b4a2d'},
+  {nom:'Marron foncé', hex:'#4a2c17'},
+  {nom:'Rouge', hex:'#d1372e'},
+  {nom:'Rouge bordeaux', hex:'#6d1f2b'},
+  {nom:'Rose', hex:'#f4a6c1'},
+  {nom:'Rose poudré', hex:'#eecfd4'},
+  {nom:'Rose fuchsia', hex:'#e0218a'},
+  {nom:'Orange', hex:'#e8752f'},
+  {nom:'Jaune', hex:'#f2d022'},
+  {nom:'Jaune moutarde', hex:'#c9a227'},
+  {nom:'Vert', hex:'#3f8a4d'},
+  {nom:'Vert olive', hex:'#6b7a3a'},
+  {nom:'Vert émeraude', hex:'#0f9960'},
+  {nom:'Bleu', hex:'#2563c9'},
+  {nom:'Bleu marine', hex:'#1b2a56'},
+  {nom:'Bleu ciel', hex:'#7ec4e8'},
+  {nom:'Bleu turquoise', hex:'#2bb8b0'},
+  {nom:'Violet', hex:'#7d4bb0'},
+  {nom:'Mauve', hex:'#b285c4'},
+  {nom:'Doré', hex:'#cfa136'},
+  {nom:'Argenté', hex:'#b8bcc2'},
+  {nom:'Bronze', hex:'#8c6b3f'},
+  {nom:'Multicolore', hex:null}
+];
+const MULTICOLORE_GRADIENT = 'conic-gradient(from 0deg, #e63946, #f4a300, #f2d022, #3f8a4d, #2563c9, #7d4bb0, #e0218a, #e63946)';
+function colorSwatchBackground(nom){
+  if(!nom) return 'background:var(--bg);border:1px dashed var(--line);';
+  const found = COULEURS_PALETTE.find(c=>c.nom===nom);
+  if(found && found.hex===null) return `background:${MULTICOLORE_GRADIENT};border:1px solid rgba(0,0,0,.15);`;
+  if(found) return `background:${found.hex};border:1px solid rgba(0,0,0,.15);`;
+  return 'background:var(--bg);border:1px solid var(--line);';
+}
+
+let colorPickerTargetVariantId = null;
+let colorPickerAutreMode = false;
+function openColorPicker(vid){
+  syncDraftFromForm();
+  colorPickerTargetVariantId = vid;
+  colorPickerAutreMode = false;
+  openModal(renderColorPickerModal());
+}
+function renderColorPickerModal(){
+  const variant = articleFormDraft.variants.find(v=>v.id===colorPickerTargetVariantId);
+  const current = variant ? variant.couleur : '';
+  const isCustom = !!current && !COULEURS_PALETTE.some(c=>c.nom===current);
+  return `
+    <h3>Choisir une couleur</h3>
+    <div class="color-picker-grid">
+      ${COULEURS_PALETTE.map(c=>`
+        <button type="button" class="color-swatch-btn ${current===c.nom?'selected':''}" onclick="pickColor('${c.nom}')">
+          <span class="swatch" style="${colorSwatchBackground(c.nom)}"></span>
+          <span class="label">${esc(c.nom)}</span>
+        </button>
+      `).join('')}
+      <button type="button" class="color-swatch-btn ${(colorPickerAutreMode||isCustom)?'selected':''}" onclick="toggleColorAutre()">
+        <span class="swatch" style="background:var(--bg);border:1px dashed var(--ink-soft);">✎</span>
+        <span class="label">Autre…</span>
+      </button>
+    </div>
+    ${(colorPickerAutreMode||isCustom) ? `
+      <div class="field">
+        <label>Préciser la couleur</label>
+        <input type="text" id="colorAutreInput" value="${isCustom?esc(current):''}" placeholder="Ex : Kaki, Corail…">
+      </div>
+      <button type="button" class="btn btn-primary" style="width:100%;margin-bottom:10px;" onclick="confirmColorAutre()">Valider</button>
+    ` : ''}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeColorPicker()">Fermer</button>
+    </div>
+  `;
+}
+function toggleColorAutre(){
+  colorPickerAutreMode = true;
+  document.getElementById('modal-root').querySelector('.modal').innerHTML = renderColorPickerModal();
+  const input = document.getElementById('colorAutreInput');
+  if(input) input.focus();
+}
+function confirmColorAutre(){
+  const val = document.getElementById('colorAutreInput').value.trim();
+  if(!val) return;
+  pickColor(val);
+}
+function pickColor(nom){
+  const variant = articleFormDraft.variants.find(v=>v.id===colorPickerTargetVariantId);
+  if(variant) variant.couleur = nom;
+  closeColorPicker();
+}
+function closeColorPicker(){
+  colorPickerTargetVariantId = null;
+  colorPickerAutreMode = false;
+  closeModal();
+  openModal(renderArticleModal());
+}
+
 function renderVariantRow(v){
   return `<div class="variant-row" data-vid="${v.id}">
     <span id="variantPhotoWrap-${v.id}">${renderVariantPhotoField(v)}</span>
-    <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille">
-    <input type="text" placeholder="Couleur" value="${esc(v.couleur)}" data-field="couleur">
+    <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille" style="max-width:56px;flex:0 1 56px;">
+    <button type="button" class="color-select-btn" onclick="openColorPicker('${v.id}')">
+      <span class="color-select-swatch" style="${colorSwatchBackground(v.couleur)}"></span>
+      <span class="color-select-label">${v.couleur? esc(v.couleur) : 'Choisir'}</span>
+    </button>
     <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
     <button class="rm" onclick="removeVariantRow('${v.id}')">✕</button></div>`;
 }
@@ -1057,7 +1172,7 @@ async function saveArticleForm(){
     return {
       id: vid,
       taille: row.querySelector('[data-field=taille]').value.trim(),
-      couleur: row.querySelector('[data-field=couleur]').value.trim(),
+      couleur: (existing && existing.couleur) || '',
       stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
       photoUrl: (existing && existing.photoUrl) || ''
     };
