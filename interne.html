@@ -85,6 +85,9 @@
   .variant-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
   .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';}
   .chip.selected{background:var(--accent);color:#fff;border-color:var(--accent);} .chip.disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+  .chip-thumb{width:20px;height:20px;border-radius:50%;object-fit:cover;margin-right:6px;flex-shrink:0;}
+  .selected-article-photo{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);margin-bottom:10px;display:block;animation:fadeInPhoto .2s ease;}
+  @keyframes fadeInPhoto{from{opacity:0;}to{opacity:1;}}
   .qty-stepper{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .qty-stepper button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:1.1rem;cursor:pointer;}
   .qty-stepper input{width:60px;text-align:center;font-family:'IBM Plex Mono';font-weight:600;font-size:16px;padding:8px 4px;border:1px solid var(--line);border-radius:8px;}
@@ -102,8 +105,11 @@
   .cat-chip:hover{border-color:var(--accent-light);color:var(--accent);}
   .cat-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
   .empty{color:var(--ink-soft);font-size:.85rem;padding:20px;text-align:center;}
-  .variant-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;} .variant-row input{flex:1;}
-  .variant-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:4px 8px;}
+  .variant-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;} .variant-row input{flex:1;min-width:0;}
+  .variant-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:4px 8px;flex-shrink:0;}
+  .variant-photo-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;border:1px dashed var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-size:.8rem;padding:0;color:var(--ink-soft);}
+  .variant-photo-thumb{display:inline-flex;width:32px;height:32px;flex-shrink:0;border-radius:6px;overflow:hidden;cursor:pointer;border:1px solid var(--line);padding:0;background:none;}
+  .variant-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
   #ticket-toast{position:fixed;top:20px;right:20px;max-width:280px;background:var(--surface);border:1px dashed var(--ink);border-radius:6px;padding:14px 16px;font-family:'IBM Plex Mono';font-size:.78rem;box-shadow:0 8px 24px rgba(36,27,47,.18);transform:translateX(340px);opacity:0;transition:all .35s ease;z-index:50;}
   #ticket-toast.show{transform:translateX(0);opacity:1;}
   #ticket-toast .t-title{font-weight:700;margin-bottom:6px;} #ticket-toast .t-line{display:flex;justify-content:space-between;color:var(--ink-soft);} #ticket-toast hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
@@ -303,6 +309,9 @@ function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.to
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
 function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0); }
+function variantPhotoUrl(article, variant){
+  return (variant && variant.photoUrl) || (article && article.photoUrl) || '';
+}
 function sortCategoriesByCount(cats, articlesList){
   const counts = {};
   cats.forEach(c=> counts[c]=0);
@@ -482,6 +491,17 @@ function renderDashboard(){
   `;
 }
 
+function renderVariantChip(ctx, article, vr, selected, disabled){
+  const thumbUrl = variantPhotoUrl(article, vr);
+  return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('${ctx}','${vr.id}')">${thumbUrl?`<img class="chip-thumb" src="${esc(thumbUrl)}" alt="">`:''}${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+}
+function renderSelectedArticlePhoto(article, variantId){
+  const variant = (article.variants||[]).find(v=>v.id===variantId);
+  const url = variantPhotoUrl(article, variant);
+  if(!url) return '';
+  return `<img class="selected-article-photo" src="${esc(url)}" alt="">`;
+}
+
 /* ---------------------------------------------------------
    VENTE
 --------------------------------------------------------- */
@@ -497,12 +517,13 @@ function renderVente(){
       ` : `
         <div class="selected-article">
           <div class="top"><span class="nom">${esc(v.article.nom)}</span><button onclick="resetSelection('vente')">changer d'article</button></div>
+          ${renderSelectedArticlePhoto(v.article, v.variantId)}
           <div class="muted" style="margin-bottom:10px;">Achat ${money(v.article.prixAchat)} · Vente ${money(v.article.prixVente)}</div>
           <label>Variante</label>
           <div class="variant-chips">
             ${(v.article.variants||[]).map(vr=>{
               const disabled=(vr.stock||0)<=0, selected=v.variantId===vr.id;
-              return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('vente','${vr.id}')">${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+              return renderVariantChip('vente', v.article, vr, selected, disabled);
             }).join('') || '<span class="muted">Aucune variante définie.</span>'}
           </div>
           ${v.variantId? renderQtyAndSubmit('vente'):''}
@@ -603,11 +624,12 @@ function renderPertes(){
       ` : `
         <div class="selected-article">
           <div class="top"><span class="nom">${esc(p.article.nom)}</span><button onclick="resetSelection('perte')">changer d'article</button></div>
+          ${renderSelectedArticlePhoto(p.article, p.variantId)}
           <label>Variante</label>
           <div class="variant-chips">
             ${(p.article.variants||[]).map(vr=>{
               const disabled=(vr.stock||0)<=0, selected=p.variantId===vr.id;
-              return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('perte','${vr.id}')">${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+              return renderVariantChip('perte', p.article, vr, selected, disabled);
             }).join('') || '<span class="muted">Aucune variante définie.</span>'}
           </div>
           ${p.variantId? renderPerteQtyAndSubmit():''}
@@ -673,10 +695,19 @@ let articleFormDraft = null;
 const IMGBB_API_KEY = '6061bc42ed0c2d9a12653888358b5f95';
 
 let cropState = null;
+let cropTargetVariantId = null; // null = photo principale de l'article, sinon id de la variante ciblée
 
 function onPhotoFileSelected(file){
   if(!file) return;
   openCropModal(file);
+}
+function triggerArticlePhotoInput(){
+  cropTargetVariantId = null;
+  document.getElementById('f_photo_file').click();
+}
+function triggerVariantPhotoInput(vid){
+  cropTargetVariantId = vid;
+  document.getElementById('f_photo_file').click();
 }
 
 function syncDraftFromForm(){
@@ -686,12 +717,17 @@ function syncDraftFromForm(){
   articleFormDraft.categorie = document.getElementById('f_cat').value;
   articleFormDraft.prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
   articleFormDraft.prixVente = parseFloat(document.getElementById('f_vente').value)||0;
-  articleFormDraft.variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>({
-    id: row.dataset.vid,
-    taille: row.querySelector('[data-field=taille]').value,
-    couleur: row.querySelector('[data-field=couleur]').value,
-    stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
-  }));
+  articleFormDraft.variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>{
+    const vid = row.dataset.vid;
+    const existing = articleFormDraft.variants.find(v=>v.id===vid);
+    return {
+      id: vid,
+      taille: row.querySelector('[data-field=taille]').value,
+      couleur: row.querySelector('[data-field=couleur]').value,
+      stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
+      photoUrl: (existing && existing.photoUrl) || ''
+    };
+  });
 }
 
 function openCropModal(file){
@@ -791,12 +827,14 @@ function onCropZoom(val){
 
 function cancelCrop(){
   if(cropState){ URL.revokeObjectURL(cropState.objectUrl); cropState = null; }
+  cropTargetVariantId = null;
   closeModal();
   openModal(renderArticleModal());
 }
 
 async function confirmCrop(){
   const cs = cropState;
+  const targetVariantId = cropTargetVariantId;
   const outW = 900, outH = Math.round(900 * cs.viewportH / cs.viewportW);
   const canvas = document.createElement('canvas');
   canvas.width = outW; canvas.height = outH;
@@ -809,35 +847,50 @@ async function confirmCrop(){
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
   URL.revokeObjectURL(cs.objectUrl);
   cropState = null;
+  cropTargetVariantId = null;
   closeModal();
   openModal(renderArticleModal());
-  await uploadCroppedPhoto(blob);
+  await uploadCroppedPhoto(blob, targetVariantId);
 }
 
-async function uploadCroppedPhoto(blob){
-  const wrap = document.getElementById('photoFieldWrap');
+async function uploadCroppedPhoto(blob, targetVariantId){
+  const isVariant = !!targetVariantId;
+  const wrapId = isVariant ? 'variantPhotoWrap-'+targetVariantId : 'photoFieldWrap';
+  const wrap = document.getElementById(wrapId);
   const localUrl = URL.createObjectURL(blob);
   if(wrap){
-    wrap.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;">
-        <img src="${localUrl}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);opacity:.6;">
-        <span class="muted">Envoi en cours…</span>
-      </div>
-    `;
+    wrap.innerHTML = isVariant
+      ? `<span class="variant-photo-thumb"><img src="${localUrl}" alt="" style="opacity:.6;"></span>`
+      : `<div style="display:flex;align-items:center;gap:12px;">
+          <img src="${localUrl}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);opacity:.6;">
+          <span class="muted">Envoi en cours…</span>
+        </div>`;
   }
   // empêche d'enregistrer l'article avant la fin de l'envoi, sans quoi la photo
-  // n'est pas encore sur articleFormDraft.photoUrl au moment de la sauvegarde.
+  // n'est pas encore sur articleFormDraft (photoUrl / variants[].photoUrl) au moment de la sauvegarde.
   const saveBtn = document.getElementById('btnSaveArticle');
   if(saveBtn) saveBtn.disabled = true;
   try{
     const url = await uploadToImgbb(blob);
-    articleFormDraft.photoUrl = url;
+    if(isVariant){
+      const variant = articleFormDraft.variants.find(v=>v.id===targetVariantId);
+      if(variant) variant.photoUrl = url;
+    } else {
+      articleFormDraft.photoUrl = url;
+    }
   }catch(e){
     alert("Erreur lors de l'envoi de la photo : " + (e.message || e));
   }finally{
     URL.revokeObjectURL(localUrl);
-    const w = document.getElementById('photoFieldWrap');
-    if(w) w.innerHTML = renderPhotoField();
+    const w = document.getElementById(wrapId);
+    if(w){
+      if(isVariant){
+        const currentVariant = articleFormDraft.variants.find(v=>v.id===targetVariantId);
+        w.innerHTML = renderVariantPhotoField(currentVariant || {id:targetVariantId});
+      } else {
+        w.innerHTML = renderPhotoField();
+      }
+    }
     const btn = document.getElementById('btnSaveArticle');
     if(btn) btn.disabled = false;
   }
@@ -862,11 +915,17 @@ function renderPhotoField(){
     return `
       <div style="display:flex;align-items:center;gap:12px;">
         <img src="${esc(url)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('f_photo_file').click()">Changer la photo</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="triggerArticlePhotoInput()">Changer la photo</button>
       </div>
     `;
   }
-  return `<button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('f_photo_file').click()">📷 Ajouter une photo</button>`;
+  return `<button type="button" class="btn btn-ghost btn-sm" onclick="triggerArticlePhotoInput()">📷 Ajouter une photo</button>`;
+}
+function renderVariantPhotoField(v){
+  if(v.photoUrl){
+    return `<button type="button" class="variant-photo-thumb" onclick="triggerVariantPhotoInput('${v.id}')" title="Changer la photo de cette variante"><img src="${esc(v.photoUrl)}" alt=""></button>`;
+  }
+  return `<button type="button" class="variant-photo-btn" onclick="triggerVariantPhotoInput('${v.id}')" title="Ajouter une photo pour cette variante">📷</button>`;
 }
 
 let stockCatFilter = 'Toutes';
@@ -975,13 +1034,14 @@ function renderArticleModal(){
 }
 function renderVariantRow(v){
   return `<div class="variant-row" data-vid="${v.id}">
+    <span id="variantPhotoWrap-${v.id}">${renderVariantPhotoField(v)}</span>
     <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille">
     <input type="text" placeholder="Couleur" value="${esc(v.couleur)}" data-field="couleur">
     <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
     <button class="rm" onclick="removeVariantRow('${v.id}')">✕</button></div>`;
 }
-function addVariantRow(){ articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0}); syncModal(); }
-function removeVariantRow(vid){ if(articleFormDraft.variants.length<=1) return; articleFormDraft.variants = articleFormDraft.variants.filter(v=>v.id!==vid); syncModal(); }
+function addVariantRow(){ syncDraftFromForm(); articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0,photoUrl:''}); syncModal(); }
+function removeVariantRow(vid){ syncDraftFromForm(); if(articleFormDraft.variants.length<=1) return; articleFormDraft.variants = articleFormDraft.variants.filter(v=>v.id!==vid); syncModal(); }
 function syncModal(){ document.getElementById('modal-root').querySelector('.modal').innerHTML = renderArticleModal(); }
 
 async function saveArticleForm(){
@@ -991,12 +1051,17 @@ async function saveArticleForm(){
   const prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
   const prixVente = parseFloat(document.getElementById('f_vente').value)||0;
   const photoUrl = articleFormDraft.photoUrl || '';
-  const variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>({
-    id: row.dataset.vid,
-    taille: row.querySelector('[data-field=taille]').value.trim(),
-    couleur: row.querySelector('[data-field=couleur]').value.trim(),
-    stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
-  }));
+  const variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>{
+    const vid = row.dataset.vid;
+    const existing = articleFormDraft.variants.find(v=>v.id===vid);
+    return {
+      id: vid,
+      taille: row.querySelector('[data-field=taille]').value.trim(),
+      couleur: row.querySelector('[data-field=couleur]').value.trim(),
+      stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
+      photoUrl: (existing && existing.photoUrl) || ''
+    };
+  });
   const { db, doc, setDoc, addDoc, collection } = window.__fb;
   const existingArticle = articleFormDraft.id ? state.articles.find(x=>x.id===articleFormDraft.id) : null;
   const stockAvant = existingArticle ? totalStock(existingArticle) : 0;
