@@ -111,15 +111,20 @@
   .variant-photo-thumb{display:inline-flex;width:32px;height:32px;flex-shrink:0;border-radius:6px;overflow:hidden;cursor:pointer;border:1px solid var(--line);padding:0;background:none;}
   .variant-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
   .color-select-btn{display:flex;align-items:center;gap:6px;flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Inter';font-size:.8rem;color:var(--ink);}
-  .color-select-btn .color-select-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;}
+  .color-select-btn.suggested{border:1px dashed var(--gold);background:#fbf7ec;}
+  .color-select-btn .color-select-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;position:relative;}
+  .color-select-btn .suggested-dot{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:1.5px solid var(--surface);}
   .color-select-btn .color-select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .color-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:10px;margin:14px 0;}
   .color-swatch-btn{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:6px 2px;border-radius:8px;}
   .color-swatch-btn:hover{background:var(--bg);}
   .color-swatch-btn .swatch{width:32px;height:32px;border-radius:50%;border:1px solid rgba(0,0,0,.15);box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:.85rem;}
   .color-swatch-btn.selected .swatch{outline:2px solid var(--accent);outline-offset:2px;}
+  .color-swatch-btn.suggested .swatch{outline:2px dashed var(--gold);outline-offset:2px;}
   .color-swatch-btn .label{font-size:.64rem;color:var(--ink-soft);text-align:center;line-height:1.15;}
   .color-swatch-btn.selected .label{color:var(--accent);font-weight:600;}
+  .color-swatch-btn.suggested .label{color:var(--gold);font-weight:600;}
+  .color-suggestion-note{background:#fbf7ec;border:1px solid var(--gold);border-radius:8px;padding:8px 10px;font-size:.78rem;color:var(--ink);margin-bottom:12px;}
   #ticket-toast{position:fixed;top:20px;right:20px;max-width:280px;background:var(--surface);border:1px dashed var(--ink);border-radius:6px;padding:14px 16px;font-family:'IBM Plex Mono';font-size:.78rem;box-shadow:0 8px 24px rgba(36,27,47,.18);transform:translateX(340px);opacity:0;transition:all .35s ease;z-index:50;}
   #ticket-toast.show{transform:translateX(0);opacity:1;}
   #ticket-toast .t-title{font-weight:700;margin-bottom:6px;} #ticket-toast .t-line{display:flex;justify-content:space-between;color:var(--ink-soft);} #ticket-toast hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
@@ -735,7 +740,8 @@ function syncDraftFromForm(){
       taille: row.querySelector('[data-field=taille]').value,
       couleur: (existing && existing.couleur) || '',
       stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
-      photoUrl: (existing && existing.photoUrl) || ''
+      photoUrl: (existing && existing.photoUrl) || '',
+      couleurSuggeree: !!(existing && existing.couleurSuggeree)
     };
   });
 }
@@ -854,6 +860,9 @@ async function confirmCrop(){
   const sW = cs.viewportW / cs.scale;
   const sH = cs.viewportH / cs.scale;
   ctx.drawImage(cs.img, sx, sy, sW, sH, 0, 0, outW, outH);
+  // analyse la couleur dominante sur l'image déjà recadrée (ce canvas), avant l'envoi —
+  // rapide, local, et ne doit jamais bloquer/ralentir la suite si elle échoue.
+  suggererCouleurDepuisCanvas(canvas, targetVariantId);
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
   URL.revokeObjectURL(cs.objectUrl);
   cropState = null;
@@ -1083,6 +1092,80 @@ function colorSwatchBackground(nom){
   return 'background:var(--bg);border:1px solid var(--line);';
 }
 
+/* ---------------------------------------------------------
+   DÉTECTION AUTOMATIQUE DE LA COULEUR DOMINANTE (depuis une photo
+   déjà recadrée) — pure suggestion, ne bloque/valide jamais rien.
+--------------------------------------------------------- */
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if(!m) return null;
+  return { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) };
+}
+function rgbToLab(r,g,b){
+  const toLinear = v => { v = v/255; return v > 0.04045 ? Math.pow((v+0.055)/1.055, 2.4) : v/12.92; };
+  const R = toLinear(r), G = toLinear(g), B = toLinear(b);
+  let X = R*0.4124564 + G*0.3575761 + B*0.1804375;
+  let Y = R*0.2126729 + G*0.7151522 + B*0.0721750;
+  let Z = R*0.0193339 + G*0.1191920 + B*0.9503041;
+  X /= 0.95047; Y /= 1.0; Z /= 1.08883;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+  const fx = f(X), fy = f(Y), fz = f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+function labDistance(lab1, lab2){
+  const dL = lab1[0]-lab2[0], da = lab1[1]-lab2[1], db = lab1[2]-lab2[2];
+  return Math.sqrt(dL*dL + da*da + db*db);
+}
+function detecterCouleurDominante(canvas){
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  const data = ctx.getImageData(0, 0, width, height).data;
+  const QUANT = 24; // taille des paniers de regroupement par canal
+  const buckets = {};
+  for(let i=0; i<width*height; i+=5){
+    const idx = i*4;
+    if(data[idx+3] < 128) continue; // ignore les pixels transparents
+    const r = data[idx], g = data[idx+1], b = data[idx+2];
+    const key = (r/QUANT|0)+'_'+(g/QUANT|0)+'_'+(b/QUANT|0);
+    const bucket = buckets[key] || (buckets[key] = { count:0, r:0, g:0, b:0 });
+    bucket.count++; bucket.r+=r; bucket.g+=g; bucket.b+=b;
+  }
+  let best = null;
+  for(const key in buckets){ if(!best || buckets[key].count > best.count) best = buckets[key]; }
+  if(!best) return null;
+  return { r: Math.round(best.r/best.count), g: Math.round(best.g/best.count), b: Math.round(best.b/best.count) };
+}
+function trouverCouleurPalettePlusProche(rgb){
+  if(!rgb) return null;
+  const labCible = rgbToLab(rgb.r, rgb.g, rgb.b);
+  let meilleurNom = null, meilleureDistance = Infinity;
+  for(const c of COULEURS_PALETTE){
+    if(!c.hex) continue; // Multicolore n'a pas de teinte de référence unique
+    const rgbC = hexToRgb(c.hex);
+    const d = labDistance(labCible, rgbToLab(rgbC.r, rgbC.g, rgbC.b));
+    if(d < meilleureDistance){ meilleureDistance = d; meilleurNom = c.nom; }
+  }
+  return meilleurNom;
+}
+function suggererCouleurDepuisCanvas(canvas, targetVariantId){
+  try{
+    const couleurDetectee = trouverCouleurPalettePlusProche(detecterCouleurDominante(canvas));
+    if(!couleurDetectee) return;
+    if(targetVariantId){
+      const variant = articleFormDraft.variants.find(v=>v.id===targetVariantId);
+      if(variant){ variant.couleur = couleurDetectee; variant.couleurSuggeree = true; }
+    } else {
+      // photo principale de l'article : ne suggère que pour les variantes sans photo propre,
+      // puisque ce sont elles qui afficheront cette photo par défaut.
+      articleFormDraft.variants.forEach(v=>{
+        if(!v.photoUrl){ v.couleur = couleurDetectee; v.couleurSuggeree = true; }
+      });
+    }
+  }catch(e){
+    console.error('Suggestion de couleur ignorée (détection échouée) :', e);
+  }
+}
+
 let colorPickerTargetVariantId = null;
 let colorPickerAutreMode = false;
 function openColorPicker(vid){
@@ -1094,16 +1177,22 @@ function openColorPicker(vid){
 function renderColorPickerModal(){
   const variant = articleFormDraft.variants.find(v=>v.id===colorPickerTargetVariantId);
   const current = variant ? variant.couleur : '';
+  const isSuggestion = !!(variant && variant.couleurSuggeree);
   const isCustom = !!current && !COULEURS_PALETTE.some(c=>c.nom===current);
   return `
     <h3>Choisir une couleur</h3>
+    ${isSuggestion ? `<p class="color-suggestion-note">🔎 Couleur détectée : <strong>${esc(current)}</strong> — clique pour confirmer ou choisis une autre couleur.</p>` : ''}
     <div class="color-picker-grid">
-      ${COULEURS_PALETTE.map(c=>`
-        <button type="button" class="color-swatch-btn ${current===c.nom?'selected':''}" onclick="pickColor('${c.nom}')">
+      ${COULEURS_PALETTE.map(c=>{
+        const isCurrent = current===c.nom;
+        const cls = isCurrent ? (isSuggestion?'suggested':'selected') : '';
+        return `
+        <button type="button" class="color-swatch-btn ${cls}" onclick="pickColor('${c.nom}')">
           <span class="swatch" style="${colorSwatchBackground(c.nom)}"></span>
           <span class="label">${esc(c.nom)}</span>
         </button>
-      `).join('')}
+      `;
+      }).join('')}
       <button type="button" class="color-swatch-btn ${(colorPickerAutreMode||isCustom)?'selected':''}" onclick="toggleColorAutre()">
         <span class="swatch" style="background:var(--bg);border:1px dashed var(--ink-soft);">✎</span>
         <span class="label">Autre…</span>
@@ -1134,7 +1223,7 @@ function confirmColorAutre(){
 }
 function pickColor(nom){
   const variant = articleFormDraft.variants.find(v=>v.id===colorPickerTargetVariantId);
-  if(variant) variant.couleur = nom;
+  if(variant){ variant.couleur = nom; variant.couleurSuggeree = false; }
   closeColorPicker();
 }
 function closeColorPicker(){
@@ -1148,14 +1237,14 @@ function renderVariantRow(v){
   return `<div class="variant-row" data-vid="${v.id}">
     <span id="variantPhotoWrap-${v.id}">${renderVariantPhotoField(v)}</span>
     <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille" style="max-width:56px;flex:0 1 56px;">
-    <button type="button" class="color-select-btn" onclick="openColorPicker('${v.id}')">
-      <span class="color-select-swatch" style="${colorSwatchBackground(v.couleur)}"></span>
+    <button type="button" class="color-select-btn ${v.couleurSuggeree?'suggested':''}" onclick="openColorPicker('${v.id}')" title="${v.couleurSuggeree?'Couleur détectée automatiquement — clique pour confirmer ou corriger':''}">
+      <span class="color-select-swatch" style="${colorSwatchBackground(v.couleur)}">${v.couleurSuggeree?'<span class="suggested-dot"></span>':''}</span>
       <span class="color-select-label">${v.couleur? esc(v.couleur) : 'Choisir'}</span>
     </button>
     <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
     <button class="rm" onclick="removeVariantRow('${v.id}')">✕</button></div>`;
 }
-function addVariantRow(){ syncDraftFromForm(); articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0,photoUrl:''}); syncModal(); }
+function addVariantRow(){ syncDraftFromForm(); articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0,photoUrl:'',couleurSuggeree:false}); syncModal(); }
 function removeVariantRow(vid){ syncDraftFromForm(); if(articleFormDraft.variants.length<=1) return; articleFormDraft.variants = articleFormDraft.variants.filter(v=>v.id!==vid); syncModal(); }
 function syncModal(){ document.getElementById('modal-root').querySelector('.modal').innerHTML = renderArticleModal(); }
 
