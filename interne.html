@@ -131,6 +131,7 @@
   .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
   .modal{background:var(--surface);border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 60px rgba(36,27,47,.22);}
   .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .photo-preview-img{display:block;max-width:100%;max-height:65vh;width:auto;height:auto;margin:0 auto;border-radius:10px;object-fit:contain;}
   .photo-thumb{width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block;}
   .photo-thumb-empty{width:38px;height:38px;border-radius:6px;background:var(--bg);border:1px solid var(--line);}
 
@@ -725,6 +726,42 @@ function triggerVariantPhotoInput(vid){
   document.getElementById('f_photo_file').click();
 }
 
+let photoPreviewContext = null; // null si aucun aperçu ouvert ; {variantId} ou {} (article) sinon
+function openPhotoPreview(variantId){
+  // le formulaire (encore affiché à cet instant) va être remplacé par l'aperçu :
+  // on resynchronise d'abord ce qui a déjà été tapé, pour ne rien perdre au retour.
+  syncDraftFromForm();
+  const url = variantId
+    ? ((articleFormDraft.variants.find(v=>v.id===variantId)||{}).photoUrl)
+    : articleFormDraft.photoUrl;
+  if(!url) return;
+  photoPreviewContext = variantId ? { variantId } : {};
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this) closePhotoPreview()">
+      <div class="modal">
+        <img src="${esc(url)}" alt="" class="photo-preview-img">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="changerPhotoDepuisApercu()">Changer la photo</button>
+          <button class="btn btn-primary" onclick="closePhotoPreview()">Fermer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function changerPhotoDepuisApercu(){
+  const variantId = photoPreviewContext && photoPreviewContext.variantId;
+  photoPreviewContext = null;
+  closeModal();
+  openModal(renderArticleModal());
+  if(variantId) triggerVariantPhotoInput(variantId);
+  else triggerArticlePhotoInput();
+}
+function closePhotoPreview(){
+  photoPreviewContext = null;
+  closeModal();
+  openModal(renderArticleModal());
+}
+
 function syncDraftFromForm(){
   const nomEl = document.getElementById('f_nom');
   if(!nomEl || !articleFormDraft) return;
@@ -933,7 +970,7 @@ function renderPhotoField(){
   if(url){
     return `
       <div style="display:flex;align-items:center;gap:12px;">
-        <img src="${esc(url)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
+        <img src="${esc(url)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;" onclick="openPhotoPreview()" title="Voir la photo en grand">
         <button type="button" class="btn btn-ghost btn-sm" onclick="triggerArticlePhotoInput()">Changer la photo</button>
       </div>
     `;
@@ -942,7 +979,7 @@ function renderPhotoField(){
 }
 function renderVariantPhotoField(v){
   if(v.photoUrl){
-    return `<button type="button" class="variant-photo-thumb" onclick="triggerVariantPhotoInput('${v.id}')" title="Changer la photo de cette variante"><img src="${esc(v.photoUrl)}" alt=""></button>`;
+    return `<button type="button" class="variant-photo-thumb" onclick="openPhotoPreview('${v.id}')" title="Voir la photo en grand"><img src="${esc(v.photoUrl)}" alt=""></button>`;
   }
   return `<button type="button" class="variant-photo-btn" onclick="triggerVariantPhotoInput('${v.id}')" title="Ajouter une photo pour cette variante">📷</button>`;
 }
