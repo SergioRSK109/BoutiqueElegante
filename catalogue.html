@@ -665,27 +665,17 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
   `;
 }
 
-function supportsNativeShareFiles(){
-  try{
-    if(!navigator.share || !navigator.canShare) return false;
-    const testFile = new File(['test'], 'test.jpg', { type:'image/jpeg' });
-    return navigator.canShare({ files:[testFile] });
-  }catch(e){ return false; }
-}
-
 function renderFactureActionsHtml(){
-  const nativeShare = supportsNativeShareFiles();
   const waBtn = factureCtx && factureCtx.waLink
     ? `<a class="btn btn-whatsapp" href="${factureCtx.waLink}" target="_blank" style="text-decoration:none;display:inline-block;">Envoyer sur WhatsApp</a>`
     : '';
   return `
     <div class="modal-actions" style="flex-wrap:wrap;">
+      ${waBtn}
+      <button class="btn btn-ghost" onclick="telechargerFactureImage(this)">📥 Télécharger la facture</button>
+      <p class="muted" style="width:100%;margin:4px 0 0;font-size:.78rem;">Envoyez d'abord le message WhatsApp, puis joignez cette image depuis votre galerie dans la même conversation.</p>
       <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimer / enregistrer en PDF</button>
-      ${nativeShare
-        ? `<button class="btn btn-whatsapp" onclick="partagerFactureNative(this)">📤 Partager la facture</button>`
-        : `${waBtn}<button class="btn btn-ghost" onclick="telechargerFactureImage(this)">Télécharger la facture</button>`}
       <button class="btn btn-primary" onclick="closeModal()">Terminé</button>
-      ${!nativeShare ? `<p class="muted" style="width:100%;margin:4px 0 0;font-size:.78rem;">Envoyez ce texte sur WhatsApp, puis joignez cette image téléchargée manuellement.</p>` : ''}
     </div>
   `;
 }
@@ -698,23 +688,6 @@ async function genererImageFacture(){
   const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff', useCORS:true });
   factureImageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
   return factureImageBlob;
-}
-
-async function partagerFactureNative(btn){
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Préparation...';
-  try{
-    const blob = await genererImageFacture();
-    if(!blob) throw new Error('image indisponible');
-    const file = new File([blob], `facture-${factureCtx.commandeId}.jpg`, { type:'image/jpeg' });
-    await navigator.share({ files:[file], text: factureCtx.message, title: `Facture #${factureCtx.commandeId}` });
-  }catch(err){
-    if(!err || err.name !== 'AbortError'){
-      alert("Le partage n'a pas pu aboutir. Vous pouvez utiliser les boutons Imprimer ou WhatsApp.");
-    }
-  }finally{
-    btn.disabled = false; btn.textContent = original;
-  }
 }
 
 async function telechargerFactureImage(btn){
