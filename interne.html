@@ -1079,9 +1079,12 @@ function renderArticleModal(){
       <label>Photo</label>
       <div id="photoFieldWrap">${renderPhotoField()}</div>
       <input type="file" id="f_photo_file" accept="image/*" style="display:none;" onchange="onPhotoFileSelected(this.files[0])">
+      <div id="firstVariantWrap" style="margin-top:10px;">${renderFirstVariantRow(d.variants[0])}</div>
     </div>
-    <label style="margin-top:6px;">Variantes (taille / couleur / stock)</label>
-    <div id="variantsWrap">${d.variants.map(v=>renderVariantRow(v)).join('')}</div>
+    ${d.variants.length>1 ? `
+    <label style="margin-top:6px;">Variantes</label>
+    <div id="variantsWrap">${d.variants.slice(1).map(v=>renderVariantRow(v)).join('')}</div>
+    ` : ''}
     <button class="btn btn-ghost btn-sm" onclick="addVariantRow()">+ Ajouter une variante</button>
     <div class="modal-actions">
       ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">🗑 Mettre à la corbeille</button>`:''}
@@ -1272,15 +1275,23 @@ function closeColorPicker(){
   openModal(renderArticleModal());
 }
 
-function renderVariantRow(v){
-  return `<div class="variant-row" data-vid="${v.id}">
-    <span id="variantPhotoWrap-${v.id}">${renderVariantPhotoField(v)}</span>
+function renderVariantFields(v){
+  return `
     <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille" style="max-width:56px;flex:0 1 56px;">
     <button type="button" class="color-select-btn ${v.couleurSuggeree?'suggested':''}" onclick="openColorPicker('${v.id}')" title="${v.couleurSuggeree?'Couleur détectée automatiquement — clique pour confirmer ou corriger':''}">
       <span class="color-select-swatch" style="${colorSwatchBackground(v.couleur)}">${v.couleurSuggeree?'<span class="suggested-dot"></span>':''}</span>
       <span class="color-select-label">${v.couleur? esc(v.couleur) : 'Choisir'}</span>
     </button>
     <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
+  `;
+}
+function renderFirstVariantRow(v){
+  return `<div class="variant-row first-variant-row" data-vid="${v.id}">${renderVariantFields(v)}</div>`;
+}
+function renderVariantRow(v){
+  return `<div class="variant-row" data-vid="${v.id}">
+    <span id="variantPhotoWrap-${v.id}">${renderVariantPhotoField(v)}</span>
+    ${renderVariantFields(v)}
     <button class="rm" onclick="removeVariantRow('${v.id}')">✕</button></div>`;
 }
 function addVariantRow(){ syncDraftFromForm(); articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0,photoUrl:'',couleurSuggeree:false}); syncModal(); }
