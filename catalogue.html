@@ -45,6 +45,7 @@
   .carousel-item .photo{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg);}
   .carousel-item .info{padding:9px 11px 11px;}
   .carousel-item .nom{font-family:'Fraunces';font-weight:600;font-size:.82rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .carousel-item .sous-titre{color:var(--ink-soft);font-size:.7rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .carousel-item .prix{font-family:'IBM Plex Mono';color:var(--accent);font-weight:700;font-size:.78rem;}
 
   .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:22px;-webkit-overflow-scrolling:touch;}
@@ -329,22 +330,34 @@ function setCat(c){ activeCat = c; renderCategories(); renderGrid(); }
 function renderCarousel(){
   const wrap = document.getElementById('carouselWrap');
   if(!wrap) return;
-  const list = articles.filter(a=> a.photoUrl && totalStock(a)>0);
-  if(list.length===0){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  const cards = [];
+  articles.filter(a=> totalStock(a)>0).forEach(a=>{
+    if(a.photoUrl){
+      cards.push({ photoUrl:a.photoUrl, nom:a.nom, sousTitre:'', prix:a.prixVente, articleId:a.id, variantId:null });
+    }
+    (a.variants||[]).forEach(v=>{
+      if(v.photoUrl && v.photoUrl!==a.photoUrl && (v.stock||0)>0){
+        const sousTitre = [v.taille,v.couleur].filter(Boolean).join(' / ');
+        cards.push({ photoUrl:v.photoUrl, nom:a.nom, sousTitre, prix:a.prixVente, articleId:a.id, variantId:v.id });
+      }
+    });
+  });
+  if(cards.length===0){ wrap.style.display='none'; wrap.innerHTML=''; return; }
   wrap.style.display='';
-  const itemHtml = a => `
-        <div class="carousel-item" onclick="openArticle('${a.id}')">
-          <img class="photo" src="${esc(a.photoUrl)}" alt="${esc(a.nom)}" loading="lazy" draggable="false">
+  const itemHtml = c => `
+        <div class="carousel-item" onclick="openArticle('${c.articleId}'${c.variantId?`,'${c.variantId}'`:''})">
+          <img class="photo" src="${esc(c.photoUrl)}" alt="${esc(c.nom)}" loading="lazy" draggable="false">
           <div class="info">
-            <div class="nom">${esc(a.nom)}</div>
-            <div class="prix">${money(a.prixVente)}</div>
+            <div class="nom">${esc(c.nom)}</div>
+            ${c.sousTitre ? `<div class="sous-titre">${esc(c.sousTitre)}</div>` : ''}
+            <div class="prix">${money(c.prix)}</div>
           </div>
         </div>`;
   wrap.innerHTML = `
     <div class="carousel-title">Nouveautés &amp; coups de cœur</div>
     <div class="carousel-viewport">
       <div class="carousel-track" id="carouselTrack">
-        ${list.map(itemHtml).join('')}${list.map(itemHtml).join('')}
+        ${cards.map(itemHtml).join('')}${cards.map(itemHtml).join('')}
       </div>
     </div>
   `;
@@ -488,9 +501,9 @@ function renderGrid(){
 }
 
 let currentArticle = null, currentVariantId = null, currentQte = 1;
-function openArticle(id){
+function openArticle(id, variantId){
   currentArticle = articles.find(a=>a.id===id);
-  currentVariantId = null; currentQte = 1;
+  currentVariantId = variantId || null; currentQte = 1;
   openModal(renderArticleModal());
 }
 function renderArticleModal(){
