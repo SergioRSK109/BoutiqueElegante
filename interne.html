@@ -349,21 +349,6 @@ async function runAutoCorbeille(){
   }
 }
 
-// Migration silencieuse : la première variante d'un article n'a plus de photo propre depuis la
-// réorganisation du formulaire (elle hérite toujours de la photo principale). Les articles créés
-// avant ce changement peuvent encore avoir un variants[0].photoUrl distinct qui crée un doublon
-// visuel dans le bandeau du catalogue. On le vide une fois, silencieusement, sans bloquer l'UI.
-let migrationVariant0PhotoChecked = false;
-async function runMigrationVariant0Photo(){
-  const { db, doc, updateDoc } = window.__fb;
-  const candidats = state.articles.filter(a=> (a.variants||[]).length>0 && a.variants[0].photoUrl);
-  for(const a of candidats){
-    try{
-      const variants = a.variants.map((v,i)=> i===0 ? {...v, photoUrl:''} : v);
-      await updateDoc(doc(db,'articles',a.id), { variants });
-    }catch(e){ console.error('migration variant0 photo error pour', a.id, e); }
-  }
-}
 function libelleModePaiement(mode){
   if(mode==='boutique') return 'Paiement en boutique (espèces)';
   if(mode==='airtel') return 'Airtel Money';
@@ -405,7 +390,6 @@ window.addEventListener('fb-ready', () => {
     state.articles = snap.docs.map(d=> ({id:d.id, ...d.data()}));
     state.loaded = true; render();
     if(!autoCorbeilleChecked){ autoCorbeilleChecked = true; runAutoCorbeille(); }
-    if(!migrationVariant0PhotoChecked){ migrationVariant0PhotoChecked = true; runMigrationVariant0Photo(); }
   }, err=> console.error('articles snapshot error', err));
 
   onSnapshot(query(collection(db,'ventes'), orderBy('date','desc')), snap=>{
@@ -1333,10 +1317,6 @@ async function saveArticleForm(){
       photoUrl: (existing && existing.photoUrl) || ''
     };
   });
-  // La première variante n'a plus de bouton photo indépendant dans le formulaire (elle hérite
-  // toujours de la photo principale via variantPhotoUrl) : on force son photoUrl à vide pour ne
-  // pas laisser traîner une ancienne photo propre qui créerait un doublon dans le bandeau catalogue.
-  if(variants.length>0) variants[0].photoUrl = '';
   const { db, doc, setDoc, addDoc, collection } = window.__fb;
   const existingArticle = articleFormDraft.id ? state.articles.find(x=>x.id===articleFormDraft.id) : null;
   const stockAvant = existingArticle ? totalStock(existingArticle) : 0;
