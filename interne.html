@@ -26,6 +26,9 @@
   .app-header .sub{color:var(--ink-soft);font-size:.8rem;}
   .settings-btn{display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:999px;width:44px;height:44px;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:border-color .18s ease,color .18s ease;}
   .settings-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .catalogue-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;background:var(--accent);color:#fff;border:none;border-radius:999px;padding:0 16px;font-weight:600;font-size:.82rem;white-space:nowrap;cursor:pointer;transition:background .18s ease;}
+  .catalogue-btn:hover{background:#671f3c;}
   .tabs{display:flex;gap:6px;margin-bottom:26px;overflow-x:auto;flex-wrap:nowrap;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;}
   .tab-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;flex:0 0 auto;white-space:nowrap;background:none;border:none;cursor:pointer;padding:9px 14px;font-size:.86rem;font-weight:600;color:var(--ink-soft);border-radius:8px 8px 0 0;position:relative;top:1px;transition:color .18s ease;}
   .tab-btn.active{color:var(--accent);background:var(--surface);border:1px solid var(--line);border-bottom:1px solid var(--surface);}
@@ -70,6 +73,8 @@
   .btn-danger{background:var(--danger);color:#fff;} .btn-danger:hover{background:#8a361f;}
   .btn-good{background:var(--good);color:#fff;}
   .btn-sm{padding:6px 10px;font-size:.76rem;}
+  .icon-btn{background:none;border:1px solid var(--line);color:var(--ink-soft);width:32px;height:32px;min-height:32px;padding:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:.92rem;cursor:pointer;transition:border-color .18s ease,color .18s ease,background .18s ease;}
+  .icon-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(168,67,47,.06);}
   .search-results{margin-top:8px;max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
   .search-item{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;transition:background .15s ease;}
   .search-item:last-child{border-bottom:none;} .search-item:hover{background:var(--bg);}
@@ -82,6 +87,9 @@
   .variant-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
   .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';}
   .chip.selected{background:var(--accent);color:#fff;border-color:var(--accent);} .chip.disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+  .chip-thumb{width:20px;height:20px;border-radius:50%;object-fit:cover;margin-right:6px;flex-shrink:0;}
+  .selected-article-photo{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);margin-bottom:10px;display:block;animation:fadeInPhoto .2s ease;}
+  @keyframes fadeInPhoto{from{opacity:0;}to{opacity:1;}}
   .qty-stepper{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .qty-stepper button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:1.1rem;cursor:pointer;}
   .qty-stepper input{width:60px;text-align:center;font-family:'IBM Plex Mono';font-weight:600;font-size:16px;padding:8px 4px;border:1px solid var(--line);border-radius:8px;}
@@ -94,15 +102,38 @@
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:600;}
   .badge.low{background:#fbe6df;color:var(--danger);} .badge.ok{background:#e6efe9;color:var(--good);}
   .badge.wait{background:#fbf0d9;color:var(--gold);}
+  .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
+  .cat-chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 15px;font-size:.82rem;cursor:pointer;transition:background .18s ease,border-color .18s ease,color .18s ease;}
+  .cat-chip:hover{border-color:var(--accent-light);color:var(--accent);}
+  .cat-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
   .empty{color:var(--ink-soft);font-size:.85rem;padding:20px;text-align:center;}
-  .variant-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;} .variant-row input{flex:1;}
-  .variant-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:4px 8px;}
+  .variant-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;} .variant-row input{flex:1;min-width:0;}
+  .variant-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:4px 8px;flex-shrink:0;}
+  .variant-photo-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;border:1px dashed var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-size:.8rem;padding:0;color:var(--ink-soft);}
+  .variant-photo-thumb{display:inline-flex;width:32px;height:32px;flex-shrink:0;border-radius:6px;overflow:hidden;cursor:pointer;border:1px solid var(--line);padding:0;background:none;}
+  .variant-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .color-select-btn{display:flex;align-items:center;gap:6px;flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Inter';font-size:.8rem;color:var(--ink);}
+  .color-select-btn.suggested{border:1px dashed var(--gold);background:#fbf7ec;}
+  .color-select-btn .color-select-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;position:relative;}
+  .color-select-btn .suggested-dot{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:1.5px solid var(--surface);}
+  .color-select-btn .color-select-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .color-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:10px;margin:14px 0;}
+  .color-swatch-btn{display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:none;cursor:pointer;padding:6px 2px;border-radius:8px;}
+  .color-swatch-btn:hover{background:var(--bg);}
+  .color-swatch-btn .swatch{width:32px;height:32px;border-radius:50%;border:1px solid rgba(0,0,0,.15);box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:.85rem;}
+  .color-swatch-btn.selected .swatch{outline:2px solid var(--accent);outline-offset:2px;}
+  .color-swatch-btn.suggested .swatch{outline:2px dashed var(--gold);outline-offset:2px;}
+  .color-swatch-btn .label{font-size:.64rem;color:var(--ink-soft);text-align:center;line-height:1.15;}
+  .color-swatch-btn.selected .label{color:var(--accent);font-weight:600;}
+  .color-swatch-btn.suggested .label{color:var(--gold);font-weight:600;}
+  .color-suggestion-note{background:#fbf7ec;border:1px solid var(--gold);border-radius:8px;padding:8px 10px;font-size:.78rem;color:var(--ink);margin-bottom:12px;}
   #ticket-toast{position:fixed;top:20px;right:20px;max-width:280px;background:var(--surface);border:1px dashed var(--ink);border-radius:6px;padding:14px 16px;font-family:'IBM Plex Mono';font-size:.78rem;box-shadow:0 8px 24px rgba(36,27,47,.18);transform:translateX(340px);opacity:0;transition:all .35s ease;z-index:50;}
   #ticket-toast.show{transform:translateX(0);opacity:1;}
   #ticket-toast .t-title{font-weight:700;margin-bottom:6px;} #ticket-toast .t-line{display:flex;justify-content:space-between;color:var(--ink-soft);} #ticket-toast hr{border:none;border-top:1px dashed var(--line);margin:6px 0;}
   .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
   .modal{background:var(--surface);border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 60px rgba(36,27,47,.22);}
   .modal h3{margin-top:0;} .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .photo-preview-img{display:block;max-width:100%;max-height:65vh;width:auto;height:auto;margin:0 auto;border-radius:10px;object-fit:contain;}
   .photo-thumb{width:38px;height:38px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block;}
   .photo-thumb-empty{width:38px;height:38px;border-radius:6px;background:var(--bg);border:1px solid var(--line);}
 
@@ -168,7 +199,10 @@
     <div class="brand"><h1 id="shopTitle" class="sr-only">Atelier — Gestion</h1>
       <span class="sub"><span class="sync-dot" id="syncDot" title="Synchronisé"></span><button class="logout-link" onclick="doLogout()">se déconnecter</button></span>
     </div>
-    <button class="settings-btn" onclick="openSettings()" title="Réglages">⚙</button>
+    <div class="header-actions">
+      <button class="catalogue-btn" onclick="openCatalogueMenu()">🛍 Voir le catalogue</button>
+      <button class="settings-btn" onclick="openSettings()" title="Réglages">⚙</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab-btn" data-tab="dashboard">Tableau de bord</button>
@@ -289,6 +323,29 @@ function todayISO(){ return new Date().toISOString(); }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
+function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0); }
+function variantPhotoUrl(article, variant){
+  return (variant && variant.photoUrl) || (article && article.photoUrl) || '';
+}
+function sortCategoriesByCount(cats, articlesList){
+  const counts = {};
+  cats.forEach(c=> counts[c]=0);
+  articlesList.forEach(a=>{ if(a.categorie && counts.hasOwnProperty(a.categorie)) counts[a.categorie]++; });
+  return [...cats].sort((a,b)=> counts[b]!==counts[a] ? counts[b]-counts[a] : a.localeCompare(b,'fr'));
+}
+const JOURS_AUTO_CORBEILLE = 60;
+let autoCorbeilleChecked = false;
+async function runAutoCorbeille(){
+  const { db, doc, updateDoc } = window.__fb;
+  const seuil = Date.now() - JOURS_AUTO_CORBEILLE*86400000;
+  const candidats = state.articles.filter(a=> !a.supprime && totalStock(a)===0 && a.stockZeroDepuis && new Date(a.stockZeroDepuis).getTime()<=seuil);
+  for(const a of candidats){
+    try{
+      await updateDoc(doc(db,'articles',a.id), { supprime:true, supprimeLe: new Date().toISOString(), supprimeRaison:'stock_zero_60_jours' });
+    }catch(e){ console.error('auto-corbeille error pour', a.id, e); }
+  }
+}
+
 function libelleModePaiement(mode){
   if(mode==='boutique') return 'Paiement en boutique (espèces)';
   if(mode==='airtel') return 'Airtel Money';
@@ -329,6 +386,7 @@ window.addEventListener('fb-ready', () => {
   onSnapshot(collection(db,'articles'), snap=>{
     state.articles = snap.docs.map(d=> ({id:d.id, ...d.data()}));
     state.loaded = true; render();
+    if(!autoCorbeilleChecked){ autoCorbeilleChecked = true; runAutoCorbeille(); }
   }, err=> console.error('articles snapshot error', err));
 
   onSnapshot(query(collection(db,'ventes'), orderBy('date','desc')), snap=>{
@@ -382,7 +440,7 @@ function render(){
 --------------------------------------------------------- */
 function computeStats(){
   let valeurAchat=0, valeurVente=0, stockUnits=0; const lowStock=[];
-  state.articles.forEach(a=> (a.variants||[]).forEach(v=>{
+  state.articles.filter(a=> !a.supprime).forEach(a=> (a.variants||[]).forEach(v=>{
     valeurAchat += (v.stock||0)*(a.prixAchat||0);
     valeurVente += (v.stock||0)*(a.prixVente||0);
     stockUnits += (v.stock||0);
@@ -449,6 +507,17 @@ function renderDashboard(){
   `;
 }
 
+function renderVariantChip(ctx, article, vr, selected, disabled){
+  const thumbUrl = variantPhotoUrl(article, vr);
+  return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('${ctx}','${vr.id}')">${thumbUrl?`<img class="chip-thumb" src="${esc(thumbUrl)}" alt="">`:''}${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+}
+function renderSelectedArticlePhoto(article, variantId){
+  const variant = (article.variants||[]).find(v=>v.id===variantId);
+  const url = variantPhotoUrl(article, variant);
+  if(!url) return '';
+  return `<img class="selected-article-photo" src="${esc(url)}" alt="">`;
+}
+
 /* ---------------------------------------------------------
    VENTE
 --------------------------------------------------------- */
@@ -464,12 +533,13 @@ function renderVente(){
       ` : `
         <div class="selected-article">
           <div class="top"><span class="nom">${esc(v.article.nom)}</span><button onclick="resetSelection('vente')">changer d'article</button></div>
+          ${renderSelectedArticlePhoto(v.article, v.variantId)}
           <div class="muted" style="margin-bottom:10px;">Achat ${money(v.article.prixAchat)} · Vente ${money(v.article.prixVente)}</div>
           <label>Variante</label>
           <div class="variant-chips">
             ${(v.article.variants||[]).map(vr=>{
               const disabled=(vr.stock||0)<=0, selected=v.variantId===vr.id;
-              return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('vente','${vr.id}')">${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+              return renderVariantChip('vente', v.article, vr, selected, disabled);
             }).join('') || '<span class="muted">Aucune variante définie.</span>'}
           </div>
           ${v.variantId? renderQtyAndSubmit('vente'):''}
@@ -506,7 +576,7 @@ function renderSearchResults(results, ctx){
 }
 function onSearch(ctx, q){
   state[ctx].query = q;
-  state[ctx].results = q.trim().length===0? [] : state.articles.filter(a=> a.nom.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  state[ctx].results = q.trim().length===0? [] : state.articles.filter(a=> !a.supprime && a.nom.toLowerCase().includes(q.toLowerCase())).slice(0,8);
   const box = document.getElementById(ctx+'Results'); if(box) box.innerHTML = renderSearchResults(state[ctx].results, ctx);
 }
 function selectArticle(ctx,id){ state[ctx].article = state.articles.find(x=>x.id===id); state[ctx].variantId=null; state[ctx].qte=1; render(); }
@@ -524,11 +594,15 @@ async function submitVente(){
       const artSnap = await tx.get(artRef);
       if(!artSnap.exists()) throw new Error('Article introuvable.');
       const art = artSnap.data();
+      const stockAvant = totalStock(art);
       const variants = art.variants.map(vr=> vr.id===v.variantId ? {...vr} : vr);
       const variant = variants.find(vr=> vr.id===v.variantId);
       if(!variant || variant.stock < v.qte) throw new Error('Stock insuffisant (peut-être vendu entre-temps).');
       variant.stock -= v.qte;
-      tx.update(artRef, { variants });
+      const stockApres = variants.reduce((s,vr)=>s+(vr.stock||0),0);
+      const artUpdate = { variants };
+      if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+      tx.update(artRef, artUpdate);
       const venteRef = doc(collection(db,'ventes'));
       const total = v.qte*art.prixVente, profit = v.qte*(art.prixVente-art.prixAchat);
       tx.set(venteRef, {
@@ -566,11 +640,12 @@ function renderPertes(){
       ` : `
         <div class="selected-article">
           <div class="top"><span class="nom">${esc(p.article.nom)}</span><button onclick="resetSelection('perte')">changer d'article</button></div>
+          ${renderSelectedArticlePhoto(p.article, p.variantId)}
           <label>Variante</label>
           <div class="variant-chips">
             ${(p.article.variants||[]).map(vr=>{
               const disabled=(vr.stock||0)<=0, selected=p.variantId===vr.id;
-              return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectVariant('perte','${vr.id}')">${esc(variantLabel(vr))} · stock ${vr.stock}</button>`;
+              return renderVariantChip('perte', p.article, vr, selected, disabled);
             }).join('') || '<span class="muted">Aucune variante définie.</span>'}
           </div>
           ${p.variantId? renderPerteQtyAndSubmit():''}
@@ -606,11 +681,15 @@ async function submitPerte(){
       const artSnap = await tx.get(artRef);
       if(!artSnap.exists()) throw new Error('Article introuvable.');
       const art = artSnap.data();
+      const stockAvant = totalStock(art);
       const variants = art.variants.map(vr=> vr.id===p.variantId? {...vr}:vr);
       const variant = variants.find(vr=> vr.id===p.variantId);
       if(!variant || variant.stock < p.qte) throw new Error('Stock insuffisant.');
       variant.stock -= p.qte;
-      tx.update(artRef, { variants });
+      const stockApres = variants.reduce((s,vr)=>s+(vr.stock||0),0);
+      const artUpdate = { variants };
+      if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+      tx.update(artRef, artUpdate);
       const perteRef = doc(collection(db,'pertes'));
       tx.set(perteRef, {
         date: new Date().toISOString(), articleId: p.article.id, articleNom: art.nom,
@@ -632,13 +711,83 @@ let articleFormDraft = null;
 const IMGBB_API_KEY = '6061bc42ed0c2d9a12653888358b5f95';
 
 let cropState = null;
+let cropTargetVariantId = null; // null = photo principale de l'article, sinon id de la variante ciblée
 
 function onPhotoFileSelected(file){
   if(!file) return;
   openCropModal(file);
 }
+function triggerArticlePhotoInput(){
+  cropTargetVariantId = null;
+  document.getElementById('f_photo_file').click();
+}
+function triggerVariantPhotoInput(vid){
+  cropTargetVariantId = vid;
+  document.getElementById('f_photo_file').click();
+}
+
+let photoPreviewContext = null; // null si aucun aperçu ouvert ; {variantId} ou {} (article) sinon
+function openPhotoPreview(variantId){
+  // le formulaire (encore affiché à cet instant) va être remplacé par l'aperçu :
+  // on resynchronise d'abord ce qui a déjà été tapé, pour ne rien perdre au retour.
+  syncDraftFromForm();
+  const url = variantId
+    ? ((articleFormDraft.variants.find(v=>v.id===variantId)||{}).photoUrl)
+    : articleFormDraft.photoUrl;
+  if(!url) return;
+  photoPreviewContext = variantId ? { variantId } : {};
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-bg" onclick="if(event.target===this) closePhotoPreview()">
+      <div class="modal">
+        <img src="${esc(url)}" alt="" class="photo-preview-img">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="changerPhotoDepuisApercu()">Changer la photo</button>
+          <button class="btn btn-primary" onclick="closePhotoPreview()">Fermer</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function changerPhotoDepuisApercu(){
+  const variantId = photoPreviewContext && photoPreviewContext.variantId;
+  photoPreviewContext = null;
+  closeModal();
+  openModal(renderArticleModal());
+  if(variantId) triggerVariantPhotoInput(variantId);
+  else triggerArticlePhotoInput();
+}
+function closePhotoPreview(){
+  photoPreviewContext = null;
+  closeModal();
+  openModal(renderArticleModal());
+}
+
+function syncDraftFromForm(){
+  const nomEl = document.getElementById('f_nom');
+  if(!nomEl || !articleFormDraft) return;
+  articleFormDraft.nom = nomEl.value;
+  articleFormDraft.categorie = document.getElementById('f_cat').value;
+  articleFormDraft.prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
+  articleFormDraft.prixVente = parseFloat(document.getElementById('f_vente').value)||0;
+  articleFormDraft.variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>{
+    const vid = row.dataset.vid;
+    const existing = articleFormDraft.variants.find(v=>v.id===vid);
+    return {
+      id: vid,
+      taille: row.querySelector('[data-field=taille]').value,
+      couleur: (existing && existing.couleur) || '',
+      stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
+      photoUrl: (existing && existing.photoUrl) || '',
+      couleurSuggeree: !!(existing && existing.couleurSuggeree)
+    };
+  });
+}
 
 function openCropModal(file){
+  // le formulaire article (encore affiché à cet instant) va être remplacé par la
+  // modale de recadrage : on récupère d'abord ce que l'utilisatrice a déjà tapé
+  // (nom, catégorie, prix, variantes) pour ne pas le perdre au retour du recadrage.
+  syncDraftFromForm();
   const objectUrl = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -731,13 +880,14 @@ function onCropZoom(val){
 
 function cancelCrop(){
   if(cropState){ URL.revokeObjectURL(cropState.objectUrl); cropState = null; }
-  document.getElementById('f_photo_file').value = '';
+  cropTargetVariantId = null;
   closeModal();
   openModal(renderArticleModal());
 }
 
 async function confirmCrop(){
   const cs = cropState;
+  const targetVariantId = cropTargetVariantId;
   const outW = 900, outH = Math.round(900 * cs.viewportH / cs.viewportW);
   const canvas = document.createElement('canvas');
   canvas.width = outW; canvas.height = outH;
@@ -747,35 +897,58 @@ async function confirmCrop(){
   const sW = cs.viewportW / cs.scale;
   const sH = cs.viewportH / cs.scale;
   ctx.drawImage(cs.img, sx, sy, sW, sH, 0, 0, outW, outH);
+  // analyse la couleur dominante sur l'image déjà recadrée (ce canvas), avant l'envoi —
+  // rapide, local, et ne doit jamais bloquer/ralentir la suite si elle échoue.
+  suggererCouleurDepuisCanvas(canvas, targetVariantId);
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
   URL.revokeObjectURL(cs.objectUrl);
   cropState = null;
-  document.getElementById('f_photo_file').value = '';
+  cropTargetVariantId = null;
   closeModal();
   openModal(renderArticleModal());
-  await uploadCroppedPhoto(blob);
+  await uploadCroppedPhoto(blob, targetVariantId);
 }
 
-async function uploadCroppedPhoto(blob){
-  const wrap = document.getElementById('photoFieldWrap');
+async function uploadCroppedPhoto(blob, targetVariantId){
+  const isVariant = !!targetVariantId;
+  const wrapId = isVariant ? 'variantPhotoWrap-'+targetVariantId : 'photoFieldWrap';
+  const wrap = document.getElementById(wrapId);
   const localUrl = URL.createObjectURL(blob);
   if(wrap){
-    wrap.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;">
-        <img src="${localUrl}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);opacity:.6;">
-        <span class="muted">Envoi en cours…</span>
-      </div>
-    `;
+    wrap.innerHTML = isVariant
+      ? `<span class="variant-photo-thumb"><img src="${localUrl}" alt="" style="opacity:.6;"></span>`
+      : `<div style="display:flex;align-items:center;gap:12px;">
+          <img src="${localUrl}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);opacity:.6;">
+          <span class="muted">Envoi en cours…</span>
+        </div>`;
   }
+  // empêche d'enregistrer l'article avant la fin de l'envoi, sans quoi la photo
+  // n'est pas encore sur articleFormDraft (photoUrl / variants[].photoUrl) au moment de la sauvegarde.
+  const saveBtn = document.getElementById('btnSaveArticle');
+  if(saveBtn) saveBtn.disabled = true;
   try{
     const url = await uploadToImgbb(blob);
-    articleFormDraft.photoUrl = url;
+    if(isVariant){
+      const variant = articleFormDraft.variants.find(v=>v.id===targetVariantId);
+      if(variant) variant.photoUrl = url;
+    } else {
+      articleFormDraft.photoUrl = url;
+    }
   }catch(e){
     alert("Erreur lors de l'envoi de la photo : " + (e.message || e));
   }finally{
     URL.revokeObjectURL(localUrl);
-    const w = document.getElementById('photoFieldWrap');
-    if(w) w.innerHTML = renderPhotoField();
+    const w = document.getElementById(wrapId);
+    if(w){
+      if(isVariant){
+        const currentVariant = articleFormDraft.variants.find(v=>v.id===targetVariantId);
+        w.innerHTML = renderVariantPhotoField(currentVariant || {id:targetVariantId});
+      } else {
+        w.innerHTML = renderPhotoField();
+      }
+    }
+    const btn = document.getElementById('btnSaveArticle');
+    if(btn) btn.disabled = false;
   }
 }
 
@@ -797,23 +970,39 @@ function renderPhotoField(){
   if(url){
     return `
       <div style="display:flex;align-items:center;gap:12px;">
-        <img src="${esc(url)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('f_photo_file').click()">Changer la photo</button>
+        <img src="${esc(url)}" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;" onclick="openPhotoPreview()" title="Voir la photo en grand">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="triggerArticlePhotoInput()">Changer la photo</button>
       </div>
     `;
   }
-  return `<button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('f_photo_file').click()">📷 Ajouter une photo</button>`;
+  return `<button type="button" class="btn btn-ghost btn-sm" onclick="triggerArticlePhotoInput()">📷 Ajouter une photo</button>`;
+}
+function renderVariantPhotoField(v){
+  if(v.photoUrl){
+    return `<button type="button" class="variant-photo-thumb" onclick="openPhotoPreview('${v.id}')" title="Voir la photo en grand"><img src="${esc(v.photoUrl)}" alt=""></button>`;
+  }
+  return `<button type="button" class="variant-photo-btn" onclick="triggerVariantPhotoInput('${v.id}')" title="Ajouter une photo pour cette variante">📷</button>`;
 }
 
+let stockCatFilter = 'Toutes';
+function setStockCatFilter(c){ stockCatFilter=c; render(); }
 function renderStock(){
-  if(state.articles.length===0){
+  const articlesActifs = state.articles.filter(a=> !a.supprime);
+  if(articlesActifs.length===0){
     return `
       <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (0)</div>
         <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
       <div class="card"><div class="empty">Aucun article. Ajoute ton premier article.</div></div>
     `;
   }
-  const rows = state.articles.map(a=>{
+  const cats = ['Toutes', ...sortCategoriesByCount(state.meta.categories, articlesActifs)];
+  const catTabs = `
+    <div class="cat-tabs">
+      ${cats.map(c=> `<button class="cat-chip ${c===stockCatFilter?'active':''}" onclick="setStockCatFilter('${esc(c)}')">${esc(c)}</button>`).join('')}
+    </div>
+  `;
+  const articlesFiltres = stockCatFilter==='Toutes' ? articlesActifs : articlesActifs.filter(a=> a.categorie===stockCatFilter);
+  const rows = articlesFiltres.map(a=>{
     const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
     const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
     const thumb = a.photoUrl
@@ -823,7 +1012,7 @@ function renderStock(){
       <td class="num">${(a.variants||[]).length}</td><td class="num">${low?`<span class="badge low">${totalStock}</span>`:`<span class="badge ok">${totalStock}</span>`}</td>
       <td class="num"><button class="btn btn-ghost btn-sm" onclick="editArticle('${a.id}')">Modifier</button></td></tr>`;
   }).join('');
-  const cards = state.articles.map(a=>{
+  const cards = articlesFiltres.map(a=>{
     const totalStock=(a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
     const low=(a.variants||[]).some(v=>(v.stock||0)<=state.meta.seuil);
     const thumb = a.photoUrl
@@ -848,13 +1037,16 @@ function renderStock(){
     `;
   }).join('');
   return `
-    <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${state.articles.length})</div>
+    <div class="flex-between" style="margin-bottom:14px;"><div class="section-title" style="margin:0;">Articles &amp; stock (${articlesFiltres.length})</div>
       <button class="btn btn-primary" onclick="editArticle(null)">+ Nouvel article</button></div>
-    <div class="card table-wrap">
-      <table><thead><tr><th></th><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
-      <tbody>${rows}</tbody></table>
-    </div>
-    <div class="cards-wrap">${cards}</div>
+    ${catTabs}
+    ${articlesFiltres.length===0 ? '<div class="card"><div class="empty">Aucun article dans cette catégorie.</div></div>' : `
+      <div class="card table-wrap">
+        <table><thead><tr><th></th><th>Nom</th><th>Catégorie</th><th class="num">Prix achat</th><th class="num">Prix vente</th><th class="num">Variantes</th><th class="num">Stock total</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>
+      <div class="cards-wrap">${cards}</div>
+    `}
   `;
 }
 function editArticle(id){
@@ -862,39 +1054,246 @@ function editArticle(id){
   articleFormDraft = existing? JSON.parse(JSON.stringify(existing)) : { id:null, nom:'', categorie:'', prixAchat:0, prixVente:0, photoUrl:'', variants:[{id:uid('vr'),taille:'',couleur:'',stock:0}] };
   openModal(renderArticleModal());
 }
+function renderCategorieOptions(d){
+  const cats = state.meta.categories || [];
+  let extra = '';
+  if(d.categorie && !cats.includes(d.categorie)){
+    extra = `<option value="${esc(d.categorie)}" selected>${esc(d.categorie)} (catégorie supprimée)</option>`;
+  }
+  if(cats.length===0 && !extra){
+    return `<option value="">Aucune catégorie — ajoute-en une depuis Réglages</option>`;
+  }
+  return extra + cats.map(c=>`<option value="${esc(c)}" ${d.categorie===c?'selected':''}>${esc(c)}</option>`).join('');
+}
 function renderArticleModal(){
   const d = articleFormDraft;
   return `
     <h3>${d.id? "Modifier l'article" : 'Nouvel article'}</h3>
     <div class="field"><label>Nom de l'article</label><input type="text" id="f_nom" value="${esc(d.nom)}" placeholder="Ex : Robe fleurie"></div>
-    <div class="field"><label>Catégorie</label><input type="text" list="catList" id="f_cat" value="${esc(d.categorie)}" placeholder="Ex : Robes">
-      <datalist id="catList">${state.meta.categories.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+    <div class="field"><label>Catégorie</label><select id="f_cat">${renderCategorieOptions(d)}</select></div>
     <div class="row"><div class="field"><label>Prix d'achat</label><input type="number" id="f_achat" value="${d.prixAchat}" min="0" step="0.01"></div>
       <div class="field"><label>Prix de vente</label><input type="number" id="f_vente" value="${d.prixVente}" min="0" step="0.01"></div></div>
     <div class="field">
       <label>Photo</label>
       <div id="photoFieldWrap">${renderPhotoField()}</div>
       <input type="file" id="f_photo_file" accept="image/*" style="display:none;" onchange="onPhotoFileSelected(this.files[0])">
+      <div id="firstVariantWrap" style="margin-top:10px;">${renderFirstVariantRow(d.variants[0])}</div>
     </div>
-    <label style="margin-top:6px;">Variantes (taille / couleur / stock)</label>
-    <div id="variantsWrap">${d.variants.map(v=>renderVariantRow(v)).join('')}</div>
+    ${d.variants.length>1 ? `
+    <label style="margin-top:6px;">Variantes</label>
+    <div id="variantsWrap">${d.variants.slice(1).map(v=>renderVariantRow(v)).join('')}</div>
+    ` : ''}
     <button class="btn btn-ghost btn-sm" onclick="addVariantRow()">+ Ajouter une variante</button>
     <div class="modal-actions">
-      ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">Supprimer</button>`:''}
+      ${d.id? `<button class="btn btn-ghost" onclick="deleteArticle('${d.id}')" style="color:var(--danger);margin-right:auto;">🗑 Mettre à la corbeille</button>`:''}
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary" onclick="saveArticleForm()">Enregistrer</button>
+      <button class="btn btn-primary" id="btnSaveArticle" onclick="saveArticleForm()">Enregistrer</button>
     </div>
   `;
 }
+const COULEURS_PALETTE = [
+  {nom:'Noir', hex:'#1a1a1a'},
+  {nom:'Blanc', hex:'#ffffff'},
+  {nom:'Gris', hex:'#8e8e8e'},
+  {nom:'Gris clair', hex:'#d3d3d3'},
+  {nom:'Gris anthracite', hex:'#383838'},
+  {nom:'Beige', hex:'#e8dcc8'},
+  {nom:'Camel', hex:'#c19a6b'},
+  {nom:'Marron', hex:'#7b4a2d'},
+  {nom:'Marron foncé', hex:'#4a2c17'},
+  {nom:'Rouge', hex:'#d1372e'},
+  {nom:'Rouge bordeaux', hex:'#6d1f2b'},
+  {nom:'Rose', hex:'#f4a6c1'},
+  {nom:'Rose poudré', hex:'#eecfd4'},
+  {nom:'Rose fuchsia', hex:'#e0218a'},
+  {nom:'Orange', hex:'#e8752f'},
+  {nom:'Jaune', hex:'#f2d022'},
+  {nom:'Jaune moutarde', hex:'#c9a227'},
+  {nom:'Vert', hex:'#3f8a4d'},
+  {nom:'Vert olive', hex:'#6b7a3a'},
+  {nom:'Vert émeraude', hex:'#0f9960'},
+  {nom:'Bleu', hex:'#2563c9'},
+  {nom:'Bleu marine', hex:'#1b2a56'},
+  {nom:'Bleu ciel', hex:'#7ec4e8'},
+  {nom:'Bleu turquoise', hex:'#2bb8b0'},
+  {nom:'Violet', hex:'#7d4bb0'},
+  {nom:'Mauve', hex:'#b285c4'},
+  {nom:'Doré', hex:'#cfa136'},
+  {nom:'Argenté', hex:'#b8bcc2'},
+  {nom:'Bronze', hex:'#8c6b3f'},
+  {nom:'Multicolore', hex:null}
+];
+const MULTICOLORE_GRADIENT = 'conic-gradient(from 0deg, #e63946, #f4a300, #f2d022, #3f8a4d, #2563c9, #7d4bb0, #e0218a, #e63946)';
+function colorSwatchBackground(nom){
+  if(!nom) return 'background:var(--bg);border:1px dashed var(--line);';
+  const found = COULEURS_PALETTE.find(c=>c.nom===nom);
+  if(found && found.hex===null) return `background:${MULTICOLORE_GRADIENT};border:1px solid rgba(0,0,0,.15);`;
+  if(found) return `background:${found.hex};border:1px solid rgba(0,0,0,.15);`;
+  return 'background:var(--bg);border:1px solid var(--line);';
+}
+
+/* ---------------------------------------------------------
+   DÉTECTION AUTOMATIQUE DE LA COULEUR DOMINANTE (depuis une photo
+   déjà recadrée) — pure suggestion, ne bloque/valide jamais rien.
+--------------------------------------------------------- */
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if(!m) return null;
+  return { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) };
+}
+function rgbToLab(r,g,b){
+  const toLinear = v => { v = v/255; return v > 0.04045 ? Math.pow((v+0.055)/1.055, 2.4) : v/12.92; };
+  const R = toLinear(r), G = toLinear(g), B = toLinear(b);
+  let X = R*0.4124564 + G*0.3575761 + B*0.1804375;
+  let Y = R*0.2126729 + G*0.7151522 + B*0.0721750;
+  let Z = R*0.0193339 + G*0.1191920 + B*0.9503041;
+  X /= 0.95047; Y /= 1.0; Z /= 1.08883;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+  const fx = f(X), fy = f(Y), fz = f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+function labDistance(lab1, lab2){
+  const dL = lab1[0]-lab2[0], da = lab1[1]-lab2[1], db = lab1[2]-lab2[2];
+  return Math.sqrt(dL*dL + da*da + db*db);
+}
+function detecterCouleurDominante(canvas){
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  const data = ctx.getImageData(0, 0, width, height).data;
+  const QUANT = 24; // taille des paniers de regroupement par canal
+  const buckets = {};
+  for(let i=0; i<width*height; i+=5){
+    const idx = i*4;
+    if(data[idx+3] < 128) continue; // ignore les pixels transparents
+    const r = data[idx], g = data[idx+1], b = data[idx+2];
+    const key = (r/QUANT|0)+'_'+(g/QUANT|0)+'_'+(b/QUANT|0);
+    const bucket = buckets[key] || (buckets[key] = { count:0, r:0, g:0, b:0 });
+    bucket.count++; bucket.r+=r; bucket.g+=g; bucket.b+=b;
+  }
+  let best = null;
+  for(const key in buckets){ if(!best || buckets[key].count > best.count) best = buckets[key]; }
+  if(!best) return null;
+  return { r: Math.round(best.r/best.count), g: Math.round(best.g/best.count), b: Math.round(best.b/best.count) };
+}
+function trouverCouleurPalettePlusProche(rgb){
+  if(!rgb) return null;
+  const labCible = rgbToLab(rgb.r, rgb.g, rgb.b);
+  let meilleurNom = null, meilleureDistance = Infinity;
+  for(const c of COULEURS_PALETTE){
+    if(!c.hex) continue; // Multicolore n'a pas de teinte de référence unique
+    const rgbC = hexToRgb(c.hex);
+    const d = labDistance(labCible, rgbToLab(rgbC.r, rgbC.g, rgbC.b));
+    if(d < meilleureDistance){ meilleureDistance = d; meilleurNom = c.nom; }
+  }
+  return meilleurNom;
+}
+function suggererCouleurDepuisCanvas(canvas, targetVariantId){
+  try{
+    const couleurDetectee = trouverCouleurPalettePlusProche(detecterCouleurDominante(canvas));
+    if(!couleurDetectee) return;
+    if(targetVariantId){
+      const variant = articleFormDraft.variants.find(v=>v.id===targetVariantId);
+      if(variant){ variant.couleur = couleurDetectee; variant.couleurSuggeree = true; }
+    } else {
+      // photo principale de l'article : ne suggère que pour les variantes sans photo propre,
+      // puisque ce sont elles qui afficheront cette photo par défaut.
+      articleFormDraft.variants.forEach(v=>{
+        if(!v.photoUrl){ v.couleur = couleurDetectee; v.couleurSuggeree = true; }
+      });
+    }
+  }catch(e){
+    console.error('Suggestion de couleur ignorée (détection échouée) :', e);
+  }
+}
+
+let colorPickerTargetVariantId = null;
+let colorPickerAutreMode = false;
+function openColorPicker(vid){
+  syncDraftFromForm();
+  colorPickerTargetVariantId = vid;
+  colorPickerAutreMode = false;
+  openModal(renderColorPickerModal());
+}
+function renderColorPickerModal(){
+  const variant = articleFormDraft.variants.find(v=>v.id===colorPickerTargetVariantId);
+  const current = variant ? variant.couleur : '';
+  const isSuggestion = !!(variant && variant.couleurSuggeree);
+  const isCustom = !!current && !COULEURS_PALETTE.some(c=>c.nom===current);
+  return `
+    <h3>Choisir une couleur</h3>
+    ${isSuggestion ? `<p class="color-suggestion-note">🔎 Couleur détectée : <strong>${esc(current)}</strong> — clique pour confirmer ou choisis une autre couleur.</p>` : ''}
+    <div class="color-picker-grid">
+      ${COULEURS_PALETTE.map(c=>{
+        const isCurrent = current===c.nom;
+        const cls = isCurrent ? (isSuggestion?'suggested':'selected') : '';
+        return `
+        <button type="button" class="color-swatch-btn ${cls}" onclick="pickColor('${c.nom}')">
+          <span class="swatch" style="${colorSwatchBackground(c.nom)}"></span>
+          <span class="label">${esc(c.nom)}</span>
+        </button>
+      `;
+      }).join('')}
+      <button type="button" class="color-swatch-btn ${(colorPickerAutreMode||isCustom)?'selected':''}" onclick="toggleColorAutre()">
+        <span class="swatch" style="background:var(--bg);border:1px dashed var(--ink-soft);">✎</span>
+        <span class="label">Autre…</span>
+      </button>
+    </div>
+    ${(colorPickerAutreMode||isCustom) ? `
+      <div class="field">
+        <label>Préciser la couleur</label>
+        <input type="text" id="colorAutreInput" value="${isCustom?esc(current):''}" placeholder="Ex : Kaki, Corail…">
+      </div>
+      <button type="button" class="btn btn-primary" style="width:100%;margin-bottom:10px;" onclick="confirmColorAutre()">Valider</button>
+    ` : ''}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeColorPicker()">Fermer</button>
+    </div>
+  `;
+}
+function toggleColorAutre(){
+  colorPickerAutreMode = true;
+  document.getElementById('modal-root').querySelector('.modal').innerHTML = renderColorPickerModal();
+  const input = document.getElementById('colorAutreInput');
+  if(input) input.focus();
+}
+function confirmColorAutre(){
+  const val = document.getElementById('colorAutreInput').value.trim();
+  if(!val) return;
+  pickColor(val);
+}
+function pickColor(nom){
+  const variant = articleFormDraft.variants.find(v=>v.id===colorPickerTargetVariantId);
+  if(variant){ variant.couleur = nom; variant.couleurSuggeree = false; }
+  closeColorPicker();
+}
+function closeColorPicker(){
+  colorPickerTargetVariantId = null;
+  colorPickerAutreMode = false;
+  closeModal();
+  openModal(renderArticleModal());
+}
+
+function renderVariantFields(v){
+  return `
+    <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille" style="max-width:56px;flex:0 1 56px;">
+    <button type="button" class="color-select-btn ${v.couleurSuggeree?'suggested':''}" onclick="openColorPicker('${v.id}')" title="${v.couleurSuggeree?'Couleur détectée automatiquement — clique pour confirmer ou corriger':''}">
+      <span class="color-select-swatch" style="${colorSwatchBackground(v.couleur)}">${v.couleurSuggeree?'<span class="suggested-dot"></span>':''}</span>
+      <span class="color-select-label">${v.couleur? esc(v.couleur) : 'Choisir'}</span>
+    </button>
+    <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
+  `;
+}
+function renderFirstVariantRow(v){
+  return `<div class="variant-row first-variant-row" data-vid="${v.id}">${renderVariantFields(v)}</div>`;
+}
 function renderVariantRow(v){
   return `<div class="variant-row" data-vid="${v.id}">
-    <input type="text" placeholder="Taille" value="${esc(v.taille)}" data-field="taille">
-    <input type="text" placeholder="Couleur" value="${esc(v.couleur)}" data-field="couleur">
-    <input type="number" placeholder="Stock" value="${v.stock}" min="0" data-field="stock" style="max-width:80px;">
+    <span id="variantPhotoWrap-${v.id}">${renderVariantPhotoField(v)}</span>
+    ${renderVariantFields(v)}
     <button class="rm" onclick="removeVariantRow('${v.id}')">✕</button></div>`;
 }
-function addVariantRow(){ articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0}); syncModal(); }
-function removeVariantRow(vid){ if(articleFormDraft.variants.length<=1) return; articleFormDraft.variants = articleFormDraft.variants.filter(v=>v.id!==vid); syncModal(); }
+function addVariantRow(){ syncDraftFromForm(); articleFormDraft.variants.push({id:uid('vr'),taille:'',couleur:'',stock:0,photoUrl:'',couleurSuggeree:false}); syncModal(); }
+function removeVariantRow(vid){ syncDraftFromForm(); if(articleFormDraft.variants.length<=1) return; articleFormDraft.variants = articleFormDraft.variants.filter(v=>v.id!==vid); syncModal(); }
 function syncModal(){ document.getElementById('modal-root').querySelector('.modal').innerHTML = renderArticleModal(); }
 
 async function saveArticleForm(){
@@ -904,44 +1303,76 @@ async function saveArticleForm(){
   const prixAchat = parseFloat(document.getElementById('f_achat').value)||0;
   const prixVente = parseFloat(document.getElementById('f_vente').value)||0;
   const photoUrl = articleFormDraft.photoUrl || '';
-  const variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>({
-    id: row.dataset.vid,
-    taille: row.querySelector('[data-field=taille]').value.trim(),
-    couleur: row.querySelector('[data-field=couleur]').value.trim(),
-    stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0
-  }));
+  const variants = Array.from(document.querySelectorAll('.variant-row')).map(row=>{
+    const vid = row.dataset.vid;
+    const existing = articleFormDraft.variants.find(v=>v.id===vid);
+    return {
+      id: vid,
+      taille: row.querySelector('[data-field=taille]').value.trim(),
+      couleur: (existing && existing.couleur) || '',
+      stock: parseInt(row.querySelector('[data-field=stock]').value,10)||0,
+      photoUrl: (existing && existing.photoUrl) || ''
+    };
+  });
   const { db, doc, setDoc, addDoc, collection } = window.__fb;
-  const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants };
+  const existingArticle = articleFormDraft.id ? state.articles.find(x=>x.id===articleFormDraft.id) : null;
+  const stockAvant = existingArticle ? totalStock(existingArticle) : 0;
+  const stockApres = variants.reduce((s,v)=>s+(v.stock||0),0);
+  let stockZeroDepuis = existingArticle ? (existingArticle.stockZeroDepuis || null) : null;
+  if(stockApres>0) stockZeroDepuis = null;
+  else if(stockAvant>0 && stockApres===0) stockZeroDepuis = new Date().toISOString();
+  const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants, stockZeroDepuis };
   if(articleFormDraft.id){ await setDoc(doc(db,'articles',articleFormDraft.id), record); }
   else{ await addDoc(collection(db,'articles'), record); }
-  if(categorie && !state.meta.categories.includes(categorie)){
-    state.meta.categories.push(categorie);
-    await setDoc(doc(db,'meta','config'), state.meta);
-  }
   closeModal(); render();
 }
 async function deleteArticle(id){
-  if(!confirm('Supprimer définitivement cet article ?')) return;
-  const { db, doc, deleteDoc } = window.__fb;
-  await deleteDoc(doc(db,'articles',id));
+  if(!confirm('Mettre cet article à la corbeille ? Tu pourras le restaurer depuis les Réglages.')) return;
+  const { db, doc, updateDoc } = window.__fb;
+  await updateDoc(doc(db,'articles',id), { supprime:true, supprimeLe: new Date().toISOString(), supprimeRaison:'manuel' });
   closeModal(); render();
 }
 
 /* ---------------------------------------------------------
    PRÉCOMMANDES
 --------------------------------------------------------- */
+let preFilter = 'attente';
+function setPreFilter(f){ preFilter=f; render(); }
 function renderPrecommandes(){
   const list = [...state.precommandes].sort((a,b)=> new Date(b.date)-new Date(a.date));
   if(list.length===0) return '<div class="card"><div class="empty">Aucune précommande pour le moment. Les commandes passées depuis le catalogue client apparaîtront ici.</div></div>';
-  return `
-    <div class="section-title">Précommandes (${list.length})</div>
+  const filtered = list.filter(p=>{
+    if(preFilter==='attente') return p.statut==='non_payé';
+    if(preFilter==='boutique') return p.statut==='payé_boutique' || p.statut==='payé';
+    if(preFilter==='mobile') return p.statut==='payé_mobile';
+    if(preFilter==='annule') return p.statut==='annulé';
+    return true;
+  });
+  const header = `
+    <div class="flex-between" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin:0;">Précommandes (${filtered.length})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm ${preFilter==='attente'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('attente')">En attente</button>
+        <button class="btn btn-sm ${preFilter==='boutique'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('boutique')">Payé en boutique</button>
+        <button class="btn btn-sm ${preFilter==='mobile'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('mobile')">Payé par mobile money</button>
+        <button class="btn btn-sm ${preFilter==='annule'?'btn-primary':'btn-ghost'}" onclick="setPreFilter('annule')">Annulé</button>
+      </div>
+    </div>
+  `;
+  if(filtered.length===0) return header + '<div class="card"><div class="empty">Aucune précommande dans cette catégorie.</div></div>';
+  return header + `
     <div class="grid" style="gap:12px;">
-      ${list.map(p=> renderPrecommandeCard(p)).join('')}
+      ${filtered.map(p=> renderPrecommandeCard(p)).join('')}
     </div>
   `;
 }
 function renderPrecommandeCard(p){
-  const statutBadge = p.statut==='payé' ? '<span class="badge ok">Payé</span>' : p.statut==='annulé' ? '<span class="badge low">Annulé</span>' : '<span class="badge wait">Non payé</span>';
+  let statutBadge;
+  if(p.statut==='payé_boutique') statutBadge = '<span class="badge ok">Payé en boutique</span>';
+  else if(p.statut==='payé_mobile') statutBadge = '<span class="badge ok">Payé par Mobile Money</span>';
+  else if(p.statut==='payé') statutBadge = '<span class="badge ok">Payé</span>';
+  else if(p.statut==='annulé') statutBadge = '<span class="badge low">Annulé</span>';
+  else statutBadge = '<span class="badge wait">Non payé</span>';
   return `
     <div class="card">
       <div class="flex-between" style="margin-bottom:8px;">
@@ -960,14 +1391,27 @@ function renderPrecommandeCard(p){
       <div class="total-line"><span class="lbl">Total</span><span class="val">${money(p.total)}</span></div>
       ${p.statut==='non_payé' ? `
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn btn-good" style="flex:1;" onclick="marquerPayee('${p.id}')">✓ Marquer payé (déduit le stock)</button>
+          <button class="btn btn-good" style="flex:1;" onclick="demanderModePaiementReel('${p.id}')">✓ Marquer payé (déduit le stock)</button>
           <button class="btn btn-ghost" onclick="annulerPrecommande('${p.id}')">Annuler</button>
         </div>
       ` : ''}
     </div>
   `;
 }
-async function marquerPayee(id){
+function demanderModePaiementReel(id){
+  openModal(`
+    <h3>Comment cette cliente a-t-elle payé ?</h3>
+    <p class="muted" style="margin-bottom:14px;">Le moyen choisi sur le catalogue n'est qu'une indication : confirme ici le moyen réellement utilisé.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-good" style="width:100%;" onclick="confirmerPaiement('${id}','boutique')">🏬 En boutique (espèces)</button>
+      <button class="btn btn-good" style="width:100%;" onclick="confirmerPaiement('${id}','mobile_money')">📱 Mobile Money (Airtel/Orange)</button>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button></div>
+  `);
+}
+async function confirmerPaiement(id, moyen){
+  closeModal();
+  const nouveauStatut = moyen==='boutique' ? 'payé_boutique' : 'payé_mobile';
   const { db, doc, runTransaction, collection } = window.__fb;
   try{
     await runTransaction(db, async (tx)=>{
@@ -999,7 +1443,11 @@ async function marquerPayee(id){
       }
       // écrire les mises à jour de stock
       for(const artId in workingVariants){
-        tx.update(artRefs[artId], { variants: workingVariants[artId] });
+        const stockAvant = totalStock(artData[artId]);
+        const stockApres = workingVariants[artId].reduce((s,vr)=>s+(vr.stock||0),0);
+        const artUpdate = { variants: workingVariants[artId] };
+        if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+        tx.update(artRefs[artId], artUpdate);
       }
       // créer les ventes correspondantes
       for(const it of pre.items){
@@ -1010,10 +1458,11 @@ async function marquerPayee(id){
           date: new Date().toISOString(), articleId: it.articleId, articleNom: it.articleNom,
           variantId: it.variantId, taille: it.taille||'', couleur: it.couleur||'',
           qte: it.qte, prixVenteUnit: it.prixVenteUnit, prixAchatUnit: art.prixAchat,
-          total, profit, vendeuse: pre.clientNom ? 'Précommande — '+pre.clientNom : 'Précommande', source: 'precommande'
+          total, profit, vendeuse: pre.clientNom ? 'Précommande — '+pre.clientNom : 'Précommande', source: 'precommande',
+          moyenPaiementReel: moyen
         });
       }
-      tx.update(preRef, { statut:'payé', datePaiement: new Date().toISOString() });
+      tx.update(preRef, { statut: nouveauStatut, datePaiement: new Date().toISOString() });
     });
     showTicket({title:'PRÉCOMMANDE PAYÉE', lines:[['Stock mis à jour',''],['Vente enregistrée','✓']]});
     render();
@@ -1052,7 +1501,8 @@ function renderHistorique(){
   const rows = items.map(i=>`<tr><td class="mono muted">${fmtDate(i.date)}</td><td>${i.type==='vente'?'<span class="badge ok">Vente</span>':'<span class="badge low">Perte</span>'}</td>
         <td>${esc(i.articleNom)}</td><td class="muted">${esc([i.taille,i.couleur].filter(Boolean).join(' / ')||'—')}</td><td class="num mono">${i.qte}</td>
         <td class="num mono">${i.type==='vente'? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0))}</td>
-        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td></tr>`).join('');
+        <td class="muted">${esc(i.type==='vente'? (i.vendeuse||'—') : i.raison)}</td>
+        <td class="num"><button class="icon-btn" title="Supprimer" onclick="demanderSuppressionHistorique('${i.type}','${i.id}')">🗑</button></td></tr>`).join('');
   const cards = items.map(i=>{
     const badge = i.type==='vente' ? '<span class="badge ok">Vente</span>' : '<span class="badge low">Perte</span>';
     const montant = i.type==='vente' ? money(i.total) : '−'+money(i.qte*(i.prixAchatUnit||0));
@@ -1062,7 +1512,10 @@ function renderHistorique(){
       <div class="card hist-card">
         <div class="flex-between">
           <span class="mono muted">${fmtDate(i.date)}</span>
-          ${badge}
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${badge}
+            <button class="icon-btn" title="Supprimer" onclick="demanderSuppressionHistorique('${i.type}','${i.id}')">🗑</button>
+          </div>
         </div>
         <div style="font-weight:600;margin-top:6px;">${esc(i.articleNom)}</div>
         ${variante ? `<div class="muted" style="font-size:.78rem;">${esc(variante)}</div>` : ''}
@@ -1076,13 +1529,62 @@ function renderHistorique(){
   }).join('');
   return header + `
     <div class="card table-wrap">
-      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Qté</th><th class="num">Montant</th><th>Vendeuse / raison</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
     <div class="cards-wrap">${cards}</div>
   `;
 }
 function setHistFilter(f){ histFilter=f; render(); }
+
+function demanderSuppressionHistorique(type, id){
+  const list = type==='vente' ? state.ventes : state.pertes;
+  const item = list.find(x=>x.id===id);
+  if(!item) return;
+  const variante = [item.taille,item.couleur].filter(Boolean).join(' / ') || 'Standard';
+  const label = type==='vente' ? 'vente' : 'perte';
+  const precommandeNote = (type==='vente' && item.source==='precommande')
+    ? `<p style="color:var(--danger);font-size:.84rem;margin-top:10px;">Cette vente provient d'une précommande validée — la précommande associée restera marquée payée mais n'aura plus de vente correspondante.</p>`
+    : '';
+  openModal(`
+    <h3>Supprimer cette ${label} ?</h3>
+    <p class="muted">Le stock de <strong>${esc(item.articleNom)}</strong> (${esc(variante)}) sera automatiquement recrédité de <strong>${item.qte}</strong> unité(s). Cette action est irréversible.</p>
+    ${precommandeNote}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" onclick="supprimerHistorique('${type}','${id}')">Supprimer définitivement</button>
+    </div>
+  `);
+}
+async function supprimerHistorique(type, id){
+  closeModal();
+  const { db, doc, runTransaction } = window.__fb;
+  let stockRestitue = true;
+  try{
+    await runTransaction(db, async (tx)=>{
+      const ref = doc(db, type==='vente' ? 'ventes' : 'pertes', id);
+      const snap = await tx.get(ref);
+      if(!snap.exists()) throw new Error("Cet enregistrement n'existe plus (peut-être déjà supprimé).");
+      const item = snap.data();
+      const artRef = doc(db,'articles', item.articleId);
+      const artSnap = await tx.get(artRef);
+      if(artSnap.exists() && (artSnap.data().variants||[]).some(v=>v.id===item.variantId)){
+        const art = artSnap.data();
+        const stockAvant = totalStock(art);
+        const variants = art.variants.map(v=> v.id===item.variantId ? {...v, stock:(v.stock||0)+item.qte} : v);
+        const stockApres = variants.reduce((s,v)=>s+(v.stock||0),0);
+        const artUpdate = { variants };
+        if(stockAvant===0 && stockApres>0) artUpdate.stockZeroDepuis = null;
+        tx.update(artRef, artUpdate);
+      } else {
+        stockRestitue = false;
+      }
+      tx.delete(ref);
+    });
+    render();
+    if(!stockRestitue) alert("L'enregistrement a été supprimé, mais le stock n'a pas pu être recrédité automatiquement car l'article ou la variante concernée n'existe plus.");
+  }catch(e){ alert(e.message || 'Erreur lors de la suppression.'); }
+}
 
 /* ---------------------------------------------------------
    EXPORT CSV
@@ -1136,6 +1638,48 @@ function exporterCSV(){
 }
 
 /* ---------------------------------------------------------
+   ACCÈS RAPIDE AU CATALOGUE
+--------------------------------------------------------- */
+function openCatalogueMenu(){
+  openModal(`
+    <h3>🛍 Catalogue</h3>
+    <p class="muted" style="margin-bottom:16px;">Consulte ou partage le catalogue avec tes clientes.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="window.open('catalogue.html','_blank')">🔗 Ouvrir le catalogue</button>
+      <button class="btn btn-ghost" style="width:100%;" onclick="copierLienCatalogue(this)">📋 Copier le lien</button>
+      ${(typeof navigator!=='undefined' && navigator.share) ? `<button class="btn btn-ghost" style="width:100%;" onclick="partagerCatalogue()">📤 Partager</button>` : ''}
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fermer</button></div>
+  `);
+}
+async function copierLienCatalogue(btn){
+  const url = window.location.origin + '/catalogue.html';
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    const original = btn.textContent;
+    btn.textContent = '✓ Lien copié !';
+    btn.disabled = true;
+    setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 2000);
+  }catch(e){
+    alert("Impossible de copier automatiquement. Voici le lien :\n" + url);
+  }
+}
+async function partagerCatalogue(){
+  const url = window.location.origin + '/catalogue.html';
+  try{
+    await navigator.share({ title: state.meta.nomBoutique || 'Boutique', text: 'Découvrez notre catalogue :', url });
+  }catch(e){ /* partage annulé par l'utilisatrice */ }
+}
+
+/* ---------------------------------------------------------
    SETTINGS
 --------------------------------------------------------- */
 function openSettings(){
@@ -1156,7 +1700,102 @@ function openSettings(){
     <div class="row"><div class="field"><label>Numéro Airtel Money</label><input type="tel" id="s_airtel" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.airtel)||'')}" placeholder="0971080048"></div>
       <div class="field"><label>Numéro Orange Money</label><input type="tel" id="s_orange" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.orange)||'')}" placeholder="0841747264"></div></div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+    <label style="margin-top:0;">Catégories</label>
+    <div id="categoriesSection">${renderCategoriesSection()}</div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+    <label style="margin-top:0;">Corbeille</label>
+    <div id="corbeilleSection">${renderCorbeilleSection()}</div>
   `);
+}
+function renderCategoriesSection(){
+  const cats = state.meta.categories || [];
+  const liste = cats.length===0
+    ? '<div class="muted" style="font-size:.82rem;">Aucune catégorie pour le moment.</div>'
+    : cats.map(c=>{
+        const count = state.articles.filter(a=> !a.supprime && a.categorie===c).length;
+        return `
+          <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--line);">
+            <span>${esc(c)} ${count>0?`<span class="muted" style="font-size:.74rem;">(${count} article${count>1?'s':''})</span>`:''}</span>
+            <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="supprimerCategorie('${esc(c)}')" title="Supprimer la catégorie">✕</button>
+          </div>
+        `;
+      }).join('');
+  return `
+    ${liste}
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <input type="text" id="s_nouvelle_categorie" placeholder="Nouvelle catégorie" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();ajouterCategorie();}">
+      <button class="btn btn-ghost btn-sm" onclick="ajouterCategorie()">+ Ajouter</button>
+    </div>
+  `;
+}
+function refreshCategoriesSection(){
+  const el = document.getElementById('categoriesSection');
+  if(el) el.innerHTML = renderCategoriesSection();
+  render();
+}
+async function ajouterCategorie(){
+  const input = document.getElementById('s_nouvelle_categorie');
+  const nom = input.value.trim();
+  if(!nom) return;
+  if(state.meta.categories.some(c=> c.toLowerCase()===nom.toLowerCase())){
+    alert('Cette catégorie existe déjà.');
+    return;
+  }
+  state.meta.categories.push(nom);
+  const { db, doc, setDoc } = window.__fb;
+  await setDoc(doc(db,'meta','config'), state.meta);
+  input.value = '';
+  refreshCategoriesSection();
+}
+async function supprimerCategorie(nom){
+  const count = state.articles.filter(a=> !a.supprime && a.categorie===nom).length;
+  const msg = count>0
+    ? `${count} article${count>1?'s':''} utilise${count>1?'nt':''} encore cette catégorie. La supprimer ne les modifie pas — ils gardent leur catégorie, mais elle ne sera plus proposée dans les filtres et le formulaire tant qu'ils ne sont pas réaffectés manuellement.\n\nSupprimer quand même "${nom}" ?`
+    : `Supprimer la catégorie "${nom}" ?`;
+  if(!confirm(msg)) return;
+  state.meta.categories = state.meta.categories.filter(c=> c!==nom);
+  const { db, doc, setDoc } = window.__fb;
+  await setDoc(doc(db,'meta','config'), state.meta);
+  refreshCategoriesSection();
+}
+function libelleSuppressionRaison(raison){
+  if(raison==='stock_zero_60_jours') return 'Stock à 0 depuis plus de 60 jours (automatique)';
+  if(raison==='manuel') return 'Suppression manuelle';
+  return raison || '—';
+}
+function renderCorbeilleSection(){
+  const corbeille = state.articles.filter(a=> a.supprime);
+  if(corbeille.length===0) return '<div class="muted" style="font-size:.82rem;">La corbeille est vide.</div>';
+  return corbeille.map(a=> `
+    <div class="card" style="padding:12px 14px;margin-bottom:8px;">
+      <div class="flex-between">
+        <strong>${esc(a.nom)}</strong>
+        <span class="muted mono" style="font-size:.74rem;">${fmtDate(a.supprimeLe)}</span>
+      </div>
+      <div class="muted" style="font-size:.78rem;margin-top:2px;">${esc(libelleSuppressionRaison(a.supprimeRaison))}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="restaurerArticle('${a.id}')">↩ Restaurer</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--danger);" onclick="supprimerDefinitivement('${a.id}')">Supprimer définitivement</button>
+      </div>
+    </div>
+  `).join('');
+}
+function refreshCorbeilleSection(){
+  const el = document.getElementById('corbeilleSection');
+  if(el) el.innerHTML = renderCorbeilleSection();
+  render();
+}
+async function restaurerArticle(id){
+  const { db, doc, updateDoc } = window.__fb;
+  await updateDoc(doc(db,'articles',id), { supprime:false, supprimeLe:null, supprimeRaison:null, stockZeroDepuis:null });
+  refreshCorbeilleSection();
+}
+async function supprimerDefinitivement(id){
+  if(!confirm('Supprimer définitivement cet article ? Cette action est irréversible.')) return;
+  const { db, doc, deleteDoc } = window.__fb;
+  await deleteDoc(doc(db,'articles',id));
+  refreshCorbeilleSection();
 }
 async function saveSettings(){
   const nomBoutique = document.getElementById('s_titre').value.trim() || 'Atelier — Gestion';

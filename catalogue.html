@@ -35,14 +35,16 @@
   /* bandeau défilant */
   .carousel-wrap{margin-bottom:28px;}
   .carousel-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft);margin:0 0 10px;font-weight:600;text-align:center;}
-  .carousel{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 10px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;}
-  .carousel::-webkit-scrollbar{height:6px;}
-  .carousel::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px;}
-  .carousel-item{flex:0 0 auto;width:148px;scroll-snap-align:start;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;}
+  .carousel-viewport{overflow:hidden;padding:2px 2px 10px;touch-action:pan-y;}
+  .carousel-track{display:flex;gap:12px;width:max-content;cursor:grab;}
+  .carousel-track.dragging{cursor:grabbing;}
+  .carousel-item{flex:0 0 auto;width:148px;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;user-select:none;-webkit-user-drag:none;}
+  .carousel-item .photo{-webkit-user-drag:none;}
   .carousel-item:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--accent-light);}
   .carousel-item .photo{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg);}
   .carousel-item .info{padding:9px 11px 11px;}
   .carousel-item .nom{font-family:'Fraunces';font-weight:600;font-size:.82rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .carousel-item .sous-titre{color:var(--ink-soft);font-size:.7rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .carousel-item .prix{font-family:'IBM Plex Mono';color:var(--accent);font-weight:700;font-size:.78rem;}
 
   .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:22px;-webkit-overflow-scrolling:touch;}
@@ -52,7 +54,9 @@
   .grid-articles{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:16px;}
   .article-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;}
   .article-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--accent-light);}
-  .article-card .photo-wrap{width:100%;aspect-ratio:4/5;background:linear-gradient(135deg,#f4e9ec,#f0e4d9);overflow:hidden;}
+  .article-card.epuise{opacity:.68;}
+  .article-card .photo-wrap{position:relative;width:100%;aspect-ratio:4/5;background:linear-gradient(135deg,#f4e9ec,#f0e4d9);overflow:hidden;}
+  .badge-epuise{position:absolute;top:16px;left:-40px;width:165px;text-align:center;transform:rotate(-40deg);background:var(--danger);color:#fff;font-weight:700;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:5px 0;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.18);}
   .article-card .photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
   .article-card .photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
   .article-card .photo-placeholder img{width:44%;height:auto;opacity:.4;}
@@ -66,11 +70,18 @@
   .modal-bg{position:fixed;inset:0;background:rgba(36,27,47,.5);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
   .modal{background:var(--surface);border-radius:16px;padding:24px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px rgba(36,27,47,.25);}
   .modal h3{margin-top:0;}
+  .modal-photo-large{width:100%;aspect-ratio:4/5;border-radius:var(--radius);overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,#f4e9ec,#f0e4d9);animation:fadeInPhoto .25s ease;}
+  .modal-photo-large img{width:100%;height:100%;object-fit:cover;display:block;}
+  .modal-photo-large .photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+  .modal-photo-large .photo-placeholder img{width:44%;height:auto;object-fit:contain;opacity:.4;}
+  @keyframes fadeInPhoto{from{opacity:0;}to{opacity:1;}}
+  .modal-cat{color:var(--ink-soft);font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
   .variant-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
   .chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;cursor:pointer;font-family:'IBM Plex Mono';transition:background .18s ease,border-color .18s ease,color .18s ease;}
   .chip:hover{border-color:var(--accent-light);}
   .chip.selected{background:var(--accent);color:#fff;border-color:var(--accent);}
   .chip.disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+  .chip-thumb{width:22px;height:22px;border-radius:50%;object-fit:cover;margin-right:6px;flex-shrink:0;}
   .qty-stepper{display:flex;align-items:center;gap:10px;}
   .qty-stepper button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:1.1rem;cursor:pointer;transition:border-color .18s ease;}
   .qty-stepper button:hover{border-color:var(--accent-light);}
@@ -84,7 +95,7 @@
   .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#671f3c;} .btn-primary:disabled{background:#c9b7bf;cursor:not-allowed;}
   .btn-ghost{background:none;border:1px solid var(--line);color:var(--ink);} .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
   .btn-whatsapp{display:inline-flex;align-items:center;justify-content:center;min-height:44px;background:#25D366;color:#fff;}
-  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;position:sticky;bottom:-24px;z-index:2;margin:18px -24px -24px;padding:14px 24px;background:var(--surface);box-shadow:0 -8px 16px -6px rgba(36,27,47,.16);border-radius:0 0 16px 16px;}
   .radio-option{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:.86rem;color:var(--ink);cursor:pointer;}
 
   /* panier flottant */
@@ -154,6 +165,7 @@
 
 <div id="modal-root"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -186,6 +198,8 @@ let panier = []; // {articleId, articleNom, variantId, taille, couleur, qte, pri
 let modePaiementChoisi = null;
 let panierClientNom = '';
 let panierClientTel = '';
+let factureCtx = null; // { commandeId, message, waLink } de la facture actuellement ouverte
+let factureImageBlob = null; // image JPEG de la facture, générée à la demande puis mise en cache
 
 function shortenReference(text){
   if(!text) return '';
@@ -200,12 +214,13 @@ function shortenReference(text){
 window.addEventListener('fb-ready', ()=>{
   const { db, collection, doc, onSnapshot, getDoc } = window.__fb;
   onSnapshot(collection(db,'articles'), snap=>{
-    articles = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    articles = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(a=> !a.supprime);
     renderCategories(); renderCarousel(); renderGrid();
   });
   getDoc(doc(db,'meta','config')).then(d=>{
     if(d.exists()){
       meta = Object.assign(meta, d.data());
+      renderCategories();
       document.getElementById('shopTitle').textContent = meta.nomBoutique || 'Boutique';
       document.getElementById('headerShopName').textContent = meta.nomBoutique || 'Boutique';
 
@@ -244,6 +259,21 @@ function money(n){ return (Math.round((n||0)*100)/100).toLocaleString('fr-FR',{m
 function esc(str){ const d=document.createElement('div'); d.textContent = str==null?'':String(str); return d.innerHTML; }
 function variantLabel(v){ const p=[]; if(v.taille) p.push(v.taille); if(v.couleur) p.push(v.couleur); return p.length? p.join(' / '):'Standard'; }
 function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0); }
+function variantPhotoUrl(article, variant){
+  return (variant && variant.photoUrl) || (article && article.photoUrl) || '';
+}
+function sortCategoriesByCount(cats, articlesList){
+  const counts = {};
+  cats.forEach(c=> counts[c]=0);
+  articlesList.forEach(a=>{ if(a.categorie && counts.hasOwnProperty(a.categorie)) counts[a.categorie]++; });
+  return [...cats].sort((a,b)=> counts[b]!==counts[a] ? counts[b]-counts[a] : a.localeCompare(b,'fr'));
+}
+const JOURS_EXPIRATION_EPUISE = 90;
+function estEpuiseExpire(a){
+  if(!a.stockZeroDepuis) return false;
+  const jours = (Date.now() - new Date(a.stockZeroDepuis).getTime()) / 86400000;
+  return jours >= JOURS_EXPIRATION_EPUISE;
+}
 function paiementMobileTexte(){
   const pm = meta.paiementMobile || {};
   const parts = [];
@@ -289,7 +319,7 @@ function renderRecapPaiement(sousTotal, mode){
 }
 
 function renderCategories(){
-  const cats = ['Toutes', ...new Set(articles.map(a=>a.categorie).filter(Boolean))];
+  const cats = ['Toutes', ...sortCategoriesByCount(meta.categories||[], articles)];
   document.getElementById('catTabs').innerHTML = cats.map(c=> `<button class="cat-chip ${c===activeCat?'active':''}" onclick="setCat('${esc(c)}')">${esc(c)}</button>`).join('');
 }
 function setCat(c){ activeCat = c; renderCategories(); renderGrid(); }
@@ -297,32 +327,161 @@ function setCat(c){ activeCat = c; renderCategories(); renderGrid(); }
 function renderCarousel(){
   const wrap = document.getElementById('carouselWrap');
   if(!wrap) return;
-  const list = articles.filter(a=> a.photoUrl && totalStock(a)>0);
-  if(list.length===0){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  const cards = [];
+  articles.filter(a=> totalStock(a)>0).forEach(a=>{
+    if(a.photoUrl){
+      cards.push({ photoUrl:a.photoUrl, nom:a.nom, sousTitre:'', prix:a.prixVente, articleId:a.id, variantId:null });
+    }
+    (a.variants||[]).forEach(v=>{
+      if(v.photoUrl && v.photoUrl!==a.photoUrl && (v.stock||0)>0){
+        const sousTitre = [v.taille,v.couleur].filter(Boolean).join(' / ');
+        cards.push({ photoUrl:v.photoUrl, nom:a.nom, sousTitre, prix:a.prixVente, articleId:a.id, variantId:v.id });
+      }
+    });
+  });
+  if(cards.length===0){ wrap.style.display='none'; wrap.innerHTML=''; return; }
   wrap.style.display='';
+  const itemHtml = c => `
+        <div class="carousel-item" onclick="openArticle('${c.articleId}'${c.variantId?`,'${c.variantId}'`:''})">
+          <img class="photo" src="${esc(c.photoUrl)}" alt="${esc(c.nom)}" loading="lazy" draggable="false">
+          <div class="info">
+            <div class="nom">${esc(c.nom)}</div>
+            ${c.sousTitre ? `<div class="sous-titre">${esc(c.sousTitre)}</div>` : ''}
+            <div class="prix">${money(c.prix)}</div>
+          </div>
+        </div>`;
   wrap.innerHTML = `
     <div class="carousel-title">Nouveautés &amp; coups de cœur</div>
-    <div class="carousel">
-      ${list.map(a=> `
-        <div class="carousel-item" onclick="openArticle('${a.id}')">
-          <img class="photo" src="${esc(a.photoUrl)}" alt="${esc(a.nom)}" loading="lazy">
-          <div class="info">
-            <div class="nom">${esc(a.nom)}</div>
-            <div class="prix">${money(a.prixVente)}</div>
-          </div>
-        </div>
-      `).join('')}
+    <div class="carousel-viewport">
+      <div class="carousel-track" id="carouselTrack">
+        ${cards.map(itemHtml).join('')}${cards.map(itemHtml).join('')}
+      </div>
     </div>
   `;
+  setupCarouselAutoScroll();
+}
+
+let carouselRafId = null;
+function setupCarouselAutoScroll(){
+  const track = document.getElementById('carouselTrack');
+  const viewport = track ? track.parentElement : null;
+  if(!track || !viewport) return;
+  if(carouselRafId){ cancelAnimationFrame(carouselRafId); carouselRafId = null; }
+
+  // Vitesse en px/s : assez lente pour rester lisible (nom + prix) pendant le défilement continu.
+  const AUTO_SPEED_PX_S = 17.5;
+  const FRICTION_PER_16MS = 0.95; // décélération du flick (glissement rapide) à chaque frame ~60fps
+  const RESUME_DELAY_MS = 2500; // délai d'inactivité avant reprise du défilement auto
+  const TAP_THRESHOLD_PX = 8; // en-deçà : c'est un clic/tap, pas un glissement
+
+  const setWidth = track.scrollWidth / 2; // largeur d'une série (le contenu est dupliqué x2 pour la boucle)
+  let pos = 0; // décalage horizontal courant (translateX), toujours dans ]-setWidth, 0]
+  let paused = false; // vrai pendant le doigt posé + le court délai d'inactivité qui suit
+  let dragging = false;
+  let momentumV = 0; // px/ms, vitesse résiduelle après un glissement rapide (fast-forward / marche arrière rapide)
+  let lastTs = null;
+  let resumeTimer = null;
+  let lastDragEndAt = 0;
+  let startX = 0, startPos = 0, moved = 0;
+  let samples = [];
+
+  function wrap(){
+    if(setWidth <= 0) return;
+    while(pos <= -setWidth) pos += setWidth;
+    while(pos > 0) pos -= setWidth;
+  }
+  function applyTransform(){ track.style.transform = `translateX(${pos}px)`; }
+
+  function frame(ts){
+    if(lastTs===null) lastTs = ts;
+    const dt = Math.min(ts - lastTs, 100);
+    lastTs = ts;
+    if(!dragging){
+      if(Math.abs(momentumV) > 0.02){
+        pos += momentumV * dt;
+        momentumV *= Math.pow(FRICTION_PER_16MS, dt/16.67);
+        if(Math.abs(momentumV) <= 0.02) momentumV = 0;
+        wrap(); applyTransform();
+      } else if(!paused){
+        pos -= (AUTO_SPEED_PX_S/1000) * dt;
+        wrap(); applyTransform();
+      }
+    }
+    carouselRafId = requestAnimationFrame(frame);
+  }
+  carouselRafId = requestAnimationFrame(frame);
+
+  function pause(){
+    paused = true;
+    if(resumeTimer){ clearTimeout(resumeTimer); resumeTimer=null; }
+  }
+  function scheduleResume(){
+    if(resumeTimer) clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(()=>{ paused = false; resumeTimer=null; }, RESUME_DELAY_MS);
+  }
+
+  function pointerX(e){ return e.touches ? e.touches[0].clientX : e.clientX; }
+
+  function onDown(e){
+    dragging = true;
+    momentumV = 0;
+    moved = 0;
+    startX = pointerX(e);
+    startPos = pos;
+    samples = [{x:startX, t:performance.now()}];
+    track.classList.add('dragging');
+    pause();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const x = pointerX(e);
+    const dx = x - startX;
+    moved = Math.max(moved, Math.abs(dx));
+    pos = startPos + dx;
+    wrap(); applyTransform();
+    samples.push({x, t:performance.now()});
+    if(samples.length>5) samples.shift();
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    if(samples.length>=2){
+      const first = samples[0], last = samples[samples.length-1];
+      const dt = last.t - first.t;
+      if(dt>0){
+        const v = (last.x - first.x) / dt; // px/ms — un flick rapide donne une vitesse élevée -> avance/recule vite
+        if(Math.abs(v) > 0.05) momentumV = v;
+      }
+    }
+    if(moved > TAP_THRESHOLD_PX) lastDragEndAt = Date.now();
+    scheduleResume();
+  }
+
+  // Écran unique et permanent (plutôt qu'un listener "une fois") : évite qu'un clic fantôme
+  // reste piégé si le navigateur avale lui-même le clic après un glissement rapide (ex. drag natif d'une image).
+  function onClickCapture(ev){
+    if(Date.now() - lastDragEndAt < 300){ ev.preventDefault(); ev.stopPropagation(); }
+  }
+  viewport.addEventListener('click', onClickCapture, true);
+  viewport.addEventListener('dragstart', e=>e.preventDefault());
+
+  viewport.addEventListener('pointerdown', onDown);
+  viewport.addEventListener('pointermove', onMove);
+  viewport.addEventListener('pointerup', onUp);
+  viewport.addEventListener('pointercancel', onUp);
 }
 
 function renderGrid(){
-  const list = articles.filter(a=> (activeCat==='Toutes' || a.categorie===activeCat) && totalStock(a)>0);
+  const list = articles.filter(a=> (activeCat==='Toutes' || a.categorie===activeCat) && (totalStock(a)>0 || !estEpuiseExpire(a)));
   const grid = document.getElementById('grid');
   if(list.length===0){ grid.innerHTML = '<div class="empty">Aucun article disponible pour le moment.</div>'; return; }
-  grid.innerHTML = list.map(a=> `
-    <div class="article-card" onclick="openArticle('${a.id}')">
+  grid.innerHTML = list.map(a=>{
+    const epuise = totalStock(a)===0;
+    return `
+    <div class="article-card ${epuise?'epuise':''}" onclick="openArticle('${a.id}')">
       <div class="photo-wrap">
+        ${epuise ? '<div class="badge-epuise">Épuisé</div>' : ''}
         ${a.photoUrl
           ? `<img src="${esc(a.photoUrl)}" alt="${esc(a.nom)}" loading="lazy">`
           : `<div class="photo-placeholder"><img src="logo.png" alt=""></div>`}
@@ -331,30 +490,40 @@ function renderGrid(){
         <div class="nom">${esc(a.nom)}</div>
         <div class="cat">${esc(a.categorie||'')}</div>
         <div class="prix">${money(a.prixVente)}</div>
-        <div class="stock-note">${(a.variants||[]).length} variante(s) disponible(s)</div>
+        <div class="stock-note">${epuise ? 'Actuellement épuisé' : (a.variants||[]).length+' variante(s) disponible(s)'}</div>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 let currentArticle = null, currentVariantId = null, currentQte = 1;
-function openArticle(id){
+function openArticle(id, variantId){
   currentArticle = articles.find(a=>a.id===id);
-  currentVariantId = null; currentQte = 1;
+  currentVariantId = variantId || null; currentQte = 1;
   openModal(renderArticleModal());
 }
 function renderArticleModal(){
   const a = currentArticle;
   const variant = (a.variants||[]).find(v=>v.id===currentVariantId);
   const maxQ = variant? variant.stock : 1;
+  const photoUrl = variantPhotoUrl(a, variant);
   return `
+    <div class="modal-photo-large">
+      ${photoUrl
+        ? `<img src="${esc(photoUrl)}" alt="${esc(a.nom)}">`
+        : `<div class="photo-placeholder"><img src="logo.png" alt=""></div>`}
+    </div>
     <h3>${esc(a.nom)}</h3>
     <div class="mono" style="color:var(--accent);font-weight:700;font-size:1.1rem;margin-bottom:6px;">${money(a.prixVente)}</div>
+    ${a.categorie ? `<div class="modal-cat">${esc(a.categorie)}</div>` : ''}
+    ${totalStock(a)===0 ? '<p style="color:var(--danger);font-weight:600;font-size:.85rem;margin:0 0 10px;">Cet article est actuellement épuisé.</p>' : ''}
     <label>Choisissez une variante</label>
     <div class="variant-chips">
       ${(a.variants||[]).map(v=>{
         const disabled = (v.stock||0)<=0, selected = currentVariantId===v.id;
-        return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="pickVariant('${v.id}')">${esc(variantLabel(v))}</button>`;
+        const thumbUrl = variantPhotoUrl(a, v);
+        return `<button class="chip ${selected?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="pickVariant('${v.id}')">${thumbUrl?`<img class="chip-thumb" src="${esc(thumbUrl)}" alt="">`:''}${esc(variantLabel(v))}</button>`;
       }).join('') || '<span class="muted">Aucune variante.</span>'}
     </div>
     ${currentVariantId? `
@@ -477,6 +646,8 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
   const pmTexte = paiementMobileTexte();
   if(pmTexte){ message += `\n\n${pmTexte}`; }
   const waLink = meta.whatsapp ? `https://wa.me/${meta.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}` : null;
+  factureCtx = { commandeId, message, waLink };
+  factureImageBlob = null;
   return `
     <div id="printArea">
       <div class="facture">
@@ -500,12 +671,51 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
       </div>
     </div>
     <p class="muted" style="margin-top:14px;font-size:.82rem;">Envoyez cette facture à la boutique pour réserver vos articles, puis passez payer et récupérer sur place.</p>
+    ${renderFactureActionsHtml()}
+  `;
+}
+
+function renderFactureActionsHtml(){
+  const waBtn = factureCtx && factureCtx.waLink
+    ? `<a class="btn btn-whatsapp" href="${factureCtx.waLink}" target="_blank" style="text-decoration:none;display:inline-block;">Envoyer sur WhatsApp</a>`
+    : '';
+  return `
     <div class="modal-actions" style="flex-wrap:wrap;">
+      ${waBtn}
+      <button class="btn btn-ghost" onclick="telechargerFactureImage(this)">📥 Télécharger la facture</button>
+      <p class="muted" style="width:100%;margin:4px 0 0;font-size:.78rem;">Envoyez d'abord le message WhatsApp, puis joignez cette image depuis votre galerie dans la même conversation.</p>
       <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimer / enregistrer en PDF</button>
-      ${waLink ? `<a class="btn btn-whatsapp" href="${waLink}" target="_blank" style="text-decoration:none;display:inline-block;">Envoyer sur WhatsApp</a>` : ''}
       <button class="btn btn-primary" onclick="closeModal()">Terminé</button>
     </div>
   `;
+}
+
+async function genererImageFacture(){
+  if(factureImageBlob) return factureImageBlob;
+  if(typeof html2canvas === 'undefined') return null;
+  const el = document.getElementById('printArea');
+  if(!el) return null;
+  const canvas = await html2canvas(el, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+  factureImageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  return factureImageBlob;
+}
+
+async function telechargerFactureImage(btn){
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Préparation...';
+  try{
+    const blob = await genererImageFacture();
+    if(!blob) throw new Error('image indisponible');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `facture-${factureCtx.commandeId}.jpg`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  }catch(err){
+    alert("Impossible de générer l'image de la facture. Vous pouvez utiliser le bouton Imprimer.");
+  }finally{
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 function openModal(html){ document.getElementById('modal-root').innerHTML = `<div class="modal-bg" onclick="if(event.target===this) closeModal()"><div class="modal">${html}</div></div>`; }
