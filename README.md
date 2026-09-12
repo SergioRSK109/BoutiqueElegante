@@ -1,4 +1,4 @@
-# ELEGANTE BOUTIQUE — App de gestion
+# Happy Store — App de gestion
 
 Application de gestion de boutique (ventes, stock, pertes, précommandes)
 avec catalogue client public, hébergée gratuitement sur GitHub Pages et
