@@ -262,6 +262,51 @@ function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
 function variantPhotoUrl(article, variant){
   return (variant && variant.photoUrl) || (article && article.photoUrl) || '';
 }
+
+/* ---------------------------------------------------------
+   TARIF GROUPÉ
+--------------------------------------------------------- */
+function calculerPrixGroupe(quantiteTotale, tarifGroupe) {
+  const { prixUnitaire, quantiteLot, prixLot } = tarifGroupe;
+  const lots = Math.floor(quantiteTotale / quantiteLot);
+  const reste = quantiteTotale % quantiteLot;
+  return lots * prixLot + reste * prixUnitaire;
+}
+// Prend un tableau de lignes de panier {categorie, qte, prixVenteUnit, ...} et le tarifGroupe actif (ou null/undefined).
+// Retourne les mêmes lignes enrichies de prixVenteUnitEffectif/sousTotal/remiseGroupee, le total général,
+// et un résumé de la remise groupée (recapGroupe) si elle fait réellement baisser le prix par rapport au tarif unitaire du groupe.
+function appliquerTarifGroupe(lignes, tarifGroupe) {
+  const tg = (tarifGroupe && tarifGroupe.categorie && tarifGroupe.quantiteLot > 0) ? tarifGroupe : null;
+  let recapGroupe = null;
+  const lignesCalculees = lignes.map(l => ({ ...l }));
+  if (tg) {
+    const lignesGroupees = lignesCalculees.filter(l => l.categorie === tg.categorie);
+    const qteTotale = lignesGroupees.reduce((s, l) => s + l.qte, 0);
+    if (qteTotale > 0) {
+      const totalGroupe = calculerPrixGroupe(qteTotale, tg);
+      const prixUnitEffectif = totalGroupe / qteTotale;
+      lignesGroupees.forEach(l => {
+        l.prixVenteUnitEffectif = prixUnitEffectif;
+        l.sousTotal = prixUnitEffectif * l.qte;
+        l.remiseGroupee = true;
+      });
+      const normalEquivalent = qteTotale * tg.prixUnitaire;
+      if (totalGroupe < normalEquivalent) {
+        recapGroupe = { categorie: tg.categorie, qte: qteTotale, totalGroupe, normalEquivalent };
+      }
+    }
+  }
+  lignesCalculees.forEach(l => {
+    if (l.prixVenteUnitEffectif === undefined) {
+      l.prixVenteUnitEffectif = l.prixVenteUnit;
+      l.sousTotal = l.prixVenteUnit * l.qte;
+      l.remiseGroupee = false;
+    }
+  });
+  const totalGeneral = lignesCalculees.reduce((s, l) => s + l.sousTotal, 0);
+  return { lignes: lignesCalculees, totalGeneral, recapGroupe };
+}
+
 function sortCategoriesByCount(cats, articlesList){
   const counts = {};
   cats.forEach(c=> counts[c]=0);
@@ -552,35 +597,41 @@ function addToPanier(){
   const existing = panier.find(p=> p.articleId===a.id && p.variantId===variant.id);
   if(existing){ existing.qte = Math.min(variant.stock, existing.qte + currentQte); }
   else{
-    panier.push({ articleId:a.id, articleNom:a.nom, variantId:variant.id, taille:variant.taille||'', couleur:variant.couleur||'', qte:currentQte, prixVenteUnit:a.prixVente, maxStock:variant.stock });
+    panier.push({ articleId:a.id, articleNom:a.nom, categorie:a.categorie||'', variantId:variant.id, taille:variant.taille||'', couleur:variant.couleur||'', qte:currentQte, prixVenteUnit:a.prixVente, maxStock:variant.stock });
   }
   closeModal(); updatePanierBar();
 }
 
 function updatePanierBar(){
   const bar = document.getElementById('panierBar');
+  const calc = appliquerTarifGroupe(panier, meta.tarifGroupe);
   const count = panier.reduce((s,p)=>s+p.qte,0);
-  const total = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
   document.getElementById('panierCount').textContent = count;
-  document.getElementById('panierTotal').textContent = money(total);
+  document.getElementById('panierTotal').textContent = money(calc.totalGeneral);
   bar.classList.toggle('show', panier.length>0);
 }
 
 function openPanier(){ openModal(renderPanierModal()); }
 function renderPanierModal(){
   if(panier.length===0) return `<h3>Panier</h3><div class="empty">Votre panier est vide.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Fermer</button></div>`;
-  const sousTotal = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  const calc = appliquerTarifGroupe(panier, meta.tarifGroupe);
+  const sousTotal = calc.totalGeneral;
   return `
     <h3>Votre panier</h3>
-    ${panier.map((p,i)=>`
+    ${calc.lignes.map((p,i)=>`
       <div class="panier-item">
-        <div class="d">${esc(p.articleNom)}<div class="sub">${esc([p.taille,p.couleur].filter(Boolean).join(' / ')||'Standard')} × ${p.qte}</div></div>
+        <div class="d">${esc(p.articleNom)}${p.remiseGroupee?' <span style="display:inline-block;background:#fbf0d9;color:var(--gold);font-size:.68rem;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:4px;">tarif groupé</span>':''}<div class="sub">${esc([p.taille,p.couleur].filter(Boolean).join(' / ')||'Standard')} × ${p.qte}</div></div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <span class="mono">${money(p.qte*p.prixVenteUnit)}</span>
+          <span class="mono">${money(p.sousTotal)}</span>
           <button class="rm" onclick="removeFromPanier(${i})">✕</button>
         </div>
       </div>
     `).join('')}
+    ${calc.recapGroupe? `
+      <div class="muted" style="font-size:.8rem;margin-top:10px;padding:8px 10px;background:#fbf0d9;border-radius:8px;">
+        ${calc.recapGroupe.qte} ${esc(calc.recapGroupe.categorie)} — tarif groupé : <strong>${money(calc.recapGroupe.totalGroupe)}</strong> au lieu de ${money(calc.recapGroupe.normalEquivalent)}
+      </div>
+    ` : ''}
     <div class="field" style="margin-top:16px;">
       <label>Mode de paiement</label>
       <div style="display:flex;flex-direction:column;gap:4px;">
@@ -622,27 +673,29 @@ async function creerFacture(){
   if(!clientNom){ alert("Merci d'indiquer votre nom."); return; }
   if(!modePaiementChoisi){ alert("Merci de choisir un mode de paiement."); return; }
   const { db, collection, addDoc } = window.__fb;
-  const sousTotal = panier.reduce((s,p)=>s+p.qte*p.prixVenteUnit,0);
+  const calc = appliquerTarifGroupe(panier, meta.tarifGroupe);
+  const sousTotal = calc.totalGeneral;
   const c = calculFrais(sousTotal, modePaiementChoisi);
-  const items = panier.map(p=> ({ articleId:p.articleId, articleNom:p.articleNom, variantId:p.variantId, taille:p.taille, couleur:p.couleur, qte:p.qte, prixVenteUnit:p.prixVenteUnit }));
+  const items = calc.lignes.map(p=> ({ articleId:p.articleId, articleNom:p.articleNom, variantId:p.variantId, taille:p.taille, couleur:p.couleur, qte:p.qte, prixVenteUnit:p.prixVenteUnitEffectif, remiseGroupee: !!p.remiseGroupee }));
   const docRef = await addDoc(collection(db,'precommandes'), {
     date: new Date().toISOString(), clientNom, clientTelephone, items,
     modePaiement: c.mode, sousTotal: c.sousTotal, fraisPourcent: c.fraisPourcent, montantFrais: c.montantFrais, total: c.total,
     statut:'non_payé'
   });
   const commandeId = docRef.id.slice(0,6).toUpperCase();
-  openModal(renderFactureModal(commandeId, clientNom, clientTelephone, items, c));
+  openModal(renderFactureModal(commandeId, clientNom, clientTelephone, items, c, calc.recapGroupe));
   panier = []; modePaiementChoisi = null; panierClientNom = ''; panierClientTel = ''; updatePanierBar();
 }
 
-function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
+function renderFactureModal(commandeId, clientNom, clientTelephone, items, c, recapGroupe){
   const dateStr = new Date().toLocaleString('fr-FR');
   const lignesTexte = items.map(it=> `- ${it.articleNom} (${[it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard'}) x${it.qte} = ${money(it.qte*it.prixVenteUnit)}`).join('\n');
   const modeTexte = libelleModePaiement(c.mode);
   const fraisTexte = c.fraisPourcent>0
     ? `Sous-total articles : ${money(c.sousTotal)}\nFrais retrait mobile money (${FRAIS_RETRAIT_PCT}%) : ${money(c.fraisRetrait)}\nFrais accès cash (${FRAIS_CASH_PCT}%) : ${money(c.fraisCash)}\nTOTAL À PAYER : ${money(c.total)}`
     : `TOTAL À PAYER : ${money(c.total)}`;
-  let message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\n${lignesTexte}\nMode de paiement : ${modeTexte}\n${fraisTexte}\nNom : ${clientNom}\nTéléphone : ${clientTelephone}\n\nJe passerai payer et récupérer en boutique. Merci !`;
+  const recapTexte = recapGroupe ? `\n→ Tarif groupé : ${recapGroupe.qte} ${recapGroupe.categorie} à ${money(recapGroupe.totalGroupe)} au lieu de ${money(recapGroupe.normalEquivalent)}` : '';
+  let message = `Bonjour, voici ma précommande #${commandeId} (${meta.nomBoutique||'boutique'}) :\n${lignesTexte}${recapTexte}\nMode de paiement : ${modeTexte}\n${fraisTexte}\nNom : ${clientNom}\nTéléphone : ${clientTelephone}\n\nJe passerai payer et récupérer en boutique. Merci !`;
   const pmTexte = paiementMobileTexte();
   if(pmTexte){ message += `\n\n${pmTexte}`; }
   const waLink = meta.whatsapp ? `https://wa.me/${meta.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}` : null;
@@ -659,7 +712,8 @@ function renderFactureModal(commandeId, clientNom, clientTelephone, items, c){
         <div class="l"><span>Téléphone</span><span>${esc(clientTelephone)}</span></div>
         <div class="l"><span>Mode de paiement</span><span>${esc(modeTexte)}</span></div>
         <hr>
-        ${items.map(it=> `<div class="l"><span>${esc(it.articleNom)} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) ×${it.qte}</span><span>${money(it.qte*it.prixVenteUnit)}</span></div>`).join('')}
+        ${items.map(it=> `<div class="l"><span>${esc(it.articleNom)}${it.remiseGroupee?' (tarif groupé)':''} (${esc([it.taille,it.couleur].filter(Boolean).join(' / ')||'Standard')}) ×${it.qte}</span><span>${money(it.qte*it.prixVenteUnit)}</span></div>`).join('')}
+        ${recapGroupe ? `<div class="l" style="color:var(--ink-soft);font-size:.78rem;"><span>→ Tarif groupé ${esc(recapGroupe.categorie)} (${recapGroupe.qte})</span><span>${money(recapGroupe.totalGroupe)} au lieu de ${money(recapGroupe.normalEquivalent)}</span></div>` : ''}
         <hr>
         <div class="l"><span>Sous-total articles</span><span>${money(c.sousTotal)}</span></div>
         ${c.fraisPourcent>0 ? `

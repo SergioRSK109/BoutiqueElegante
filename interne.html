@@ -310,10 +310,11 @@ let state = {
     categories: ['Sac à main','Bijoux','Bracelet','Drap','Porte-clé','Petit Tapis','Grand Tapis','Pyjama','Parfum'],
     whatsapp: '243071080048',
     adresse: { province:'Nord Kivu', ville:'Goma', quartier:'Katindo', reference:'En face de la salle polyvalente Saint Cyril' },
-    paiementMobile: { airtel: '0971080048', orange: '0841747264' }
+    paiementMobile: { airtel: '0971080048', orange: '0841747264' },
+    tarifGroupe: null
   },
   tab: 'dashboard',
-  vente: { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:'' },
+  vente: { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:'', panier:[] },
   perte: { query:'', results:[], article:null, variantId:null, qte:1, raison:'Abîmé / endommagé', vendeuse:'' },
   loaded:false
 };
@@ -328,6 +329,51 @@ function totalStock(a){ return (a.variants||[]).reduce((s,v)=>s+(v.stock||0),0);
 function variantPhotoUrl(article, variant){
   return (variant && variant.photoUrl) || (article && article.photoUrl) || '';
 }
+
+/* ---------------------------------------------------------
+   TARIF GROUPÉ
+--------------------------------------------------------- */
+function calculerPrixGroupe(quantiteTotale, tarifGroupe) {
+  const { prixUnitaire, quantiteLot, prixLot } = tarifGroupe;
+  const lots = Math.floor(quantiteTotale / quantiteLot);
+  const reste = quantiteTotale % quantiteLot;
+  return lots * prixLot + reste * prixUnitaire;
+}
+// Prend un tableau de lignes de panier {categorie, qte, prixVenteUnit, ...} et le tarifGroupe actif (ou null/undefined).
+// Retourne les mêmes lignes enrichies de prixVenteUnitEffectif/sousTotal/remiseGroupee, le total général,
+// et un résumé de la remise groupée (recapGroupe) si elle fait réellement baisser le prix par rapport au tarif unitaire du groupe.
+function appliquerTarifGroupe(lignes, tarifGroupe) {
+  const tg = (tarifGroupe && tarifGroupe.categorie && tarifGroupe.quantiteLot > 0) ? tarifGroupe : null;
+  let recapGroupe = null;
+  const lignesCalculees = lignes.map(l => ({ ...l }));
+  if (tg) {
+    const lignesGroupees = lignesCalculees.filter(l => l.categorie === tg.categorie);
+    const qteTotale = lignesGroupees.reduce((s, l) => s + l.qte, 0);
+    if (qteTotale > 0) {
+      const totalGroupe = calculerPrixGroupe(qteTotale, tg);
+      const prixUnitEffectif = totalGroupe / qteTotale;
+      lignesGroupees.forEach(l => {
+        l.prixVenteUnitEffectif = prixUnitEffectif;
+        l.sousTotal = prixUnitEffectif * l.qte;
+        l.remiseGroupee = true;
+      });
+      const normalEquivalent = qteTotale * tg.prixUnitaire;
+      if (totalGroupe < normalEquivalent) {
+        recapGroupe = { categorie: tg.categorie, qte: qteTotale, totalGroupe, normalEquivalent };
+      }
+    }
+  }
+  lignesCalculees.forEach(l => {
+    if (l.prixVenteUnitEffectif === undefined) {
+      l.prixVenteUnitEffectif = l.prixVenteUnit;
+      l.sousTotal = l.prixVenteUnit * l.qte;
+      l.remiseGroupee = false;
+    }
+  });
+  const totalGeneral = lignesCalculees.reduce((s, l) => s + l.sousTotal, 0);
+  return { lignes: lignesCalculees, totalGeneral, recapGroupe };
+}
+
 function sortCategoriesByCount(cats, articlesList){
   const counts = {};
   cats.forEach(c=> counts[c]=0);
@@ -524,6 +570,7 @@ function renderSelectedArticlePhoto(article, variantId){
 --------------------------------------------------------- */
 function renderVente(){
   const v = state.vente;
+  const calc = appliquerTarifGroupe(v.panier, state.meta.tarifGroupe);
   return `
     <div class="card" style="max-width:560px;margin:0 auto;">
       <div class="section-title">Nouvelle vente</div>
@@ -543,29 +590,73 @@ function renderVente(){
               return renderVariantChip('vente', v.article, vr, selected, disabled);
             }).join('') || '<span class="muted">Aucune variante définie.</span>'}
           </div>
-          ${v.variantId? renderQtyAndSubmit('vente'):''}
+          ${v.variantId? renderVenteQtyAndAdd():''}
         </div>
       `}
     </div>
+    ${v.panier.length>0 ? renderPanierVente(calc) : ''}
   `;
 }
-function renderQtyAndSubmit(ctx){
-  const v = state[ctx];
+function renderVenteQtyAndAdd(){
+  const v = state.vente;
   const variant = (v.article.variants||[]).find(x=> x.id===v.variantId);
   const maxQ = variant? variant.stock:1;
-  const total = v.qte * v.article.prixVente;
   return `
     <div class="field" style="margin-top:12px;"><label>Quantité</label>
-      <div class="qty-stepper"><button onclick="changeQty('${ctx}',-1)">−</button>
-        <input type="number" value="${v.qte}" min="1" max="${maxQ}" oninput="setQty('${ctx}',this.value,${maxQ})">
-        <button onclick="changeQty('${ctx}',1)">+</button><span class="muted">/ ${maxQ} en stock</span></div></div>
-    <div class="field"><label>Vendeuse</label>
-      <input type="text" list="vendeusesList" placeholder="Nom de la vendeuse" value="${esc(v.vendeuse)}" oninput="state.${ctx}.vendeuse=this.value">
-      <datalist id="vendeusesList">${state.meta.vendeuses.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
-    <div class="total-line"><span class="lbl">Total à encaisser</span><span class="val">${money(total)}</span></div>
-    <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="submitVente()" ${v.qte<1||v.qte>maxQ?'disabled':''}>Enregistrer la vente</button>
+      <div class="qty-stepper"><button onclick="changeQty('vente',-1)">−</button>
+        <input type="number" value="${v.qte}" min="1" max="${maxQ}" oninput="setQty('vente',this.value,${maxQ})">
+        <button onclick="changeQty('vente',1)">+</button><span class="muted">/ ${maxQ} en stock</span></div></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="ajouterLignePanierVente()" ${v.qte<1||v.qte>maxQ?'disabled':''}>+ Ajouter au panier</button>
   `;
 }
+function renderPanierVente(calc){
+  return `
+    <div class="card" style="max-width:560px;margin:20px auto 0;">
+      <div class="section-title">Panier de la vente</div>
+      ${calc.lignes.map((l,i)=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);">
+          <div>
+            <div style="font-weight:600;font-size:.88rem;">${esc(l.articleNom)}${l.remiseGroupee?' <span class="badge wait">tarif groupé</span>':''}</div>
+            <div class="muted" style="font-size:.76rem;">${esc(variantLabel({taille:l.taille,couleur:l.couleur}))} × ${l.qte}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="mono">${money(l.sousTotal)}</span>
+            <button class="icon-btn" onclick="retirerLignePanierVente(${i})" title="Retirer">✕</button>
+          </div>
+        </div>
+      `).join('')}
+      ${calc.recapGroupe? `
+        <div class="muted" style="font-size:.8rem;margin-top:10px;padding:8px 10px;background:#fbf0d9;border-radius:8px;">
+          ${calc.recapGroupe.qte} ${esc(calc.recapGroupe.categorie)} — tarif groupé : <strong>${money(calc.recapGroupe.totalGroupe)}</strong> au lieu de ${money(calc.recapGroupe.normalEquivalent)}
+        </div>
+      ` : ''}
+      <div class="field" style="margin-top:14px;"><label>Vendeuse</label>
+        <input type="text" list="vendeusesList" placeholder="Nom de la vendeuse" value="${esc(state.vente.vendeuse)}" oninput="state.vente.vendeuse=this.value">
+        <datalist id="vendeusesList">${state.meta.vendeuses.map(n=>`<option value="${esc(n)}">`).join('')}</datalist></div>
+      <div class="total-line"><span class="lbl">Total à encaisser</span><span class="val">${money(calc.totalGeneral)}</span></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="submitVente()">Enregistrer la vente</button>
+    </div>
+  `;
+}
+function ajouterLignePanierVente(){
+  const v = state.vente;
+  const variant = (v.article.variants||[]).find(x=>x.id===v.variantId);
+  if(!variant) return;
+  const existing = v.panier.find(l=> l.articleId===v.article.id && l.variantId===v.variantId);
+  if(existing){
+    existing.qte = Math.min(variant.stock, existing.qte + v.qte);
+  } else {
+    v.panier.push({
+      articleId: v.article.id, articleNom: v.article.nom, categorie: v.article.categorie||'',
+      variantId: v.variantId, taille: variant.taille||'', couleur: variant.couleur||'',
+      qte: v.qte, prixVenteUnit: v.article.prixVente, prixAchatUnit: v.article.prixAchat,
+      maxStock: variant.stock
+    });
+  }
+  v.article=null; v.variantId=null; v.qte=1; v.query=''; v.results=[];
+  render();
+}
+function retirerLignePanierVente(i){ state.vente.panier.splice(i,1); render(); }
 function renderSearchResults(results, ctx){
   if(!results.length) return '';
   return results.map(a=>{
@@ -587,30 +678,49 @@ function changeQty(ctx,delta){ const variant=state[ctx].article.variants.find(v=
 function setQty(ctx,val,max){ let q=parseInt(val,10); if(isNaN(q)||q<1)q=1; if(q>max)q=max; state[ctx].qte=q; render(); }
 
 async function submitVente(){
-  const v = state.vente; if(!v.article||!v.variantId) return;
-  const { db, doc, runTransaction, collection, serverTimestamp } = window.__fb;
+  const v = state.vente; if(!v.panier.length) return;
+  const calc = appliquerTarifGroupe(v.panier, state.meta.tarifGroupe);
+  const { db, doc, runTransaction, collection } = window.__fb;
   try{
     await runTransaction(db, async (tx)=>{
-      const artRef = doc(db,'articles', v.article.id);
-      const artSnap = await tx.get(artRef);
-      if(!artSnap.exists()) throw new Error('Article introuvable.');
-      const art = artSnap.data();
-      const stockAvant = totalStock(art);
-      const variants = art.variants.map(vr=> vr.id===v.variantId ? {...vr} : vr);
-      const variant = variants.find(vr=> vr.id===v.variantId);
-      if(!variant || variant.stock < v.qte) throw new Error('Stock insuffisant (peut-être vendu entre-temps).');
-      variant.stock -= v.qte;
-      const stockApres = variants.reduce((s,vr)=>s+(vr.stock||0),0);
-      const artUpdate = { variants };
-      if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
-      tx.update(artRef, artUpdate);
-      const venteRef = doc(collection(db,'ventes'));
-      const total = v.qte*art.prixVente, profit = v.qte*(art.prixVente-art.prixAchat);
-      tx.set(venteRef, {
-        date: new Date().toISOString(), articleId: v.article.id, articleNom: art.nom,
-        variantId: v.variantId, taille: variant.taille||'', couleur: variant.couleur||'',
-        qte: v.qte, prixVenteUnit: art.prixVente, prixAchatUnit: art.prixAchat,
-        total, profit, vendeuse: v.vendeuse||'', source:'boutique'
+      // 1) Lire tous les articles concernés AVANT toute écriture (règle des transactions Firestore).
+      const articleIds = [...new Set(v.panier.map(l=>l.articleId))];
+      const artSnaps = {}, artRefs = {};
+      for(const id of articleIds){
+        const ref = doc(db,'articles', id);
+        const snap = await tx.get(ref);
+        if(!snap.exists()) throw new Error('Un article du panier est introuvable (peut-être supprimé entre-temps).');
+        artRefs[id] = ref; artSnaps[id] = snap.data();
+      }
+      // 2) Vérifier le stock et préparer les nouvelles quantités, par article.
+      const variantsParArticle = {};
+      for(const l of v.panier){
+        if(!variantsParArticle[l.articleId]) variantsParArticle[l.articleId] = artSnaps[l.articleId].variants.map(vr=>({...vr}));
+        const variant = variantsParArticle[l.articleId].find(vr=> vr.id===l.variantId);
+        if(!variant || variant.stock < l.qte) throw new Error(`Stock insuffisant pour ${l.articleNom} (peut-être vendu entre-temps).`);
+        variant.stock -= l.qte;
+      }
+      // 3) Appliquer les mises à jour de stock.
+      for(const articleId of Object.keys(variantsParArticle)){
+        const variants = variantsParArticle[articleId];
+        const stockAvant = totalStock(artSnaps[articleId]);
+        const stockApres = variants.reduce((s,vr)=>s+(vr.stock||0),0);
+        const artUpdate = { variants };
+        if(stockAvant>0 && stockApres===0) artUpdate.stockZeroDepuis = new Date().toISOString();
+        tx.update(artRefs[articleId], artUpdate);
+      }
+      // 4) Créer un enregistrement de vente par ligne du panier.
+      const dateVente = new Date().toISOString();
+      calc.lignes.forEach(l=>{
+        const venteRef = doc(collection(db,'ventes'));
+        const profit = l.sousTotal - l.qte*l.prixAchatUnit;
+        tx.set(venteRef, {
+          date: dateVente, articleId: l.articleId, articleNom: l.articleNom,
+          variantId: l.variantId, taille: l.taille, couleur: l.couleur,
+          qte: l.qte, prixVenteUnit: l.prixVenteUnitEffectif, prixAchatUnit: l.prixAchatUnit,
+          total: l.sousTotal, profit, vendeuse: v.vendeuse||'', source:'boutique',
+          remiseGroupee: !!l.remiseGroupee
+        });
       });
     });
     if(v.vendeuse && !state.meta.vendeuses.includes(v.vendeuse)){
@@ -618,9 +728,12 @@ async function submitVente(){
       const { db, doc, setDoc } = window.__fb;
       await setDoc(doc(db,'meta','config'), state.meta);
     }
-    showTicket({title:'VENTE ENREGISTRÉE', lines:[[v.article.nom,''],[variantLabel(v.article.variants.find(x=>x.id===v.variantId)),'x'+v.qte],['Total', money(v.qte*v.article.prixVente)]]});
+    showTicket({title:'VENTE ENREGISTRÉE', lines:[
+      ...calc.lignes.map(l=>[`${l.articleNom} x${l.qte}`, money(l.sousTotal)]),
+      ['Total', money(calc.totalGeneral)]
+    ]});
     const keep = v.vendeuse;
-    state.vente = { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:keep };
+    state.vente = { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:keep, panier:[] };
     render();
   }catch(e){ alert(e.message || 'Erreur lors de la vente.'); }
 }
@@ -1611,11 +1724,11 @@ function downloadCSV(filename, csvContent){
   URL.revokeObjectURL(url);
 }
 function exporterCSV(){
-  const venteHeaders = ['id','date','articleId','articleNom','variantId','taille','couleur','qte','prixVenteUnit','prixAchatUnit','total','profit','vendeuse','source'];
+  const venteHeaders = ['id','date','articleId','articleNom','variantId','taille','couleur','qte','prixVenteUnit','prixAchatUnit','total','profit','vendeuse','source','remiseGroupee'];
   const venteRows = state.ventes.map(v=> ({
     id:v.id, date:v.date, articleId:v.articleId, articleNom:v.articleNom, variantId:v.variantId,
     taille:v.taille, couleur:v.couleur, qte:v.qte, prixVenteUnit:v.prixVenteUnit, prixAchatUnit:v.prixAchatUnit,
-    total:v.total, profit:v.profit, vendeuse:v.vendeuse, source:v.source
+    total:v.total, profit:v.profit, vendeuse:v.vendeuse, source:v.source, remiseGroupee:v.remiseGroupee?'oui':''
   }));
   downloadCSV('ventes.csv', toCSV(venteRows, venteHeaders));
 
@@ -1683,6 +1796,16 @@ async function partagerCatalogue(){
 /* ---------------------------------------------------------
    SETTINGS
 --------------------------------------------------------- */
+function renderTarifGroupeCategorieOptions(){
+  const cats = state.meta.categories || [];
+  const current = (state.meta.tarifGroupe && state.meta.tarifGroupe.categorie) || '';
+  let opts = `<option value="">Aucune (désactivé)</option>`;
+  if(current && !cats.includes(current)){
+    opts += `<option value="${esc(current)}" selected>${esc(current)} (catégorie supprimée)</option>`;
+  }
+  opts += cats.map(c=>`<option value="${esc(c)}" ${current===c?'selected':''}>${esc(c)}</option>`).join('');
+  return opts;
+}
 function openSettings(){
   openModal(`
     <h3>Réglages</h3>
@@ -1700,6 +1823,14 @@ function openSettings(){
     <label style="margin-top:6px;">Paiement mobile (affiché sur le catalogue client)</label>
     <div class="row"><div class="field"><label>Numéro Airtel Money</label><input type="tel" id="s_airtel" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.airtel)||'')}" placeholder="0971080048"></div>
       <div class="field"><label>Numéro Orange Money</label><input type="tel" id="s_orange" value="${esc((state.meta.paiementMobile&&state.meta.paiementMobile.orange)||'')}" placeholder="0841747264"></div></div>
+    <label style="margin-top:6px;">Tarif groupé</label>
+    <div class="muted" style="margin-bottom:10px;">Propose un prix réduit pour l'achat groupé d'une catégorie (ex : 3 sacs pour 23$ au lieu de 30$). Choisis "Aucune" pour désactiver.</div>
+    <div class="field"><label>Catégorie concernée</label><select id="s_tg_categorie">${renderTarifGroupeCategorieOptions()}</select></div>
+    <div class="row">
+      <div class="field"><label>Prix unitaire</label><input type="number" id="s_tg_prixUnitaire" value="${(state.meta.tarifGroupe&&state.meta.tarifGroupe.prixUnitaire!=null)?state.meta.tarifGroupe.prixUnitaire:''}" min="0" step="0.01" placeholder="Ex : 10"></div>
+      <div class="field"><label>Quantité du lot</label><input type="number" id="s_tg_quantiteLot" value="${(state.meta.tarifGroupe&&state.meta.tarifGroupe.quantiteLot!=null)?state.meta.tarifGroupe.quantiteLot:''}" min="2" step="1" placeholder="Ex : 3"></div>
+      <div class="field"><label>Prix du lot</label><input type="number" id="s_tg_prixLot" value="${(state.meta.tarifGroupe&&state.meta.tarifGroupe.prixLot!=null)?state.meta.tarifGroupe.prixLot:''}" min="0" step="0.01" placeholder="Ex : 23"></div>
+    </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button></div>
     <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
     <label style="margin-top:0;">Catégories</label>
@@ -1814,6 +1945,19 @@ async function saveSettings(){
     airtel: document.getElementById('s_airtel').value.trim(),
     orange: document.getElementById('s_orange').value.trim()
   };
+  const tgCategorie = document.getElementById('s_tg_categorie').value;
+  if(tgCategorie){
+    const prixUnitaire = parseFloat(document.getElementById('s_tg_prixUnitaire').value);
+    const quantiteLot = parseInt(document.getElementById('s_tg_quantiteLot').value,10);
+    const prixLot = parseFloat(document.getElementById('s_tg_prixLot').value);
+    if(isNaN(prixUnitaire) || isNaN(quantiteLot) || quantiteLot<2 || isNaN(prixLot)){
+      alert('Merci de renseigner correctement le prix unitaire, la quantité du lot (2 ou plus) et le prix du lot pour le tarif groupé — ou choisis "Aucune" pour le désactiver.');
+      return;
+    }
+    state.meta.tarifGroupe = { categorie: tgCategorie, prixUnitaire, quantiteLot, prixLot };
+  } else {
+    state.meta.tarifGroupe = null;
+  }
   const { db, doc, setDoc } = window.__fb;
   await setDoc(doc(db,'meta','config'), state.meta);
   document.getElementById('shopTitle').textContent = nomBoutique;
