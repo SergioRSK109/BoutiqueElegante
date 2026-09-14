@@ -1571,11 +1571,11 @@ async function saveArticleForm(){
   else if(stockAvant>0 && stockApres===0) stockZeroDepuis = new Date().toISOString();
   const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants, stockZeroDepuis };
 
-  // Détecte les mouvements de stock manuels (réapprovisionnement / correction) avant d'écraser les variantes.
+  // Détecte les mouvements de stock (réapprovisionnement / correction) avant d'écraser les variantes.
   const mouvements = [];
+  const dateM = new Date().toISOString();
+  const vendeuse = window.__currentVendeuse || '';
   if(existingArticle){
-    const dateM = new Date().toISOString();
-    const vendeuse = window.__currentVendeuse || '';
     variants.forEach(v=>{
       const avant = existingArticle.variants.find(ev=>ev.id===v.id);
       const stockAvantV = avant ? (avant.stock||0) : 0;
@@ -1603,8 +1603,24 @@ async function saveArticleForm(){
     });
   }
 
-  if(articleFormDraft.id){ await setDoc(doc(db,'articles',articleFormDraft.id), record); }
-  else{ await addDoc(collection(db,'articles'), record); }
+  let articleId = articleFormDraft.id;
+  if(articleId){ await setDoc(doc(db,'articles',articleId), record); }
+  else{
+    const newRef = await addDoc(collection(db,'articles'), record);
+    articleId = newRef.id;
+    // Nouvel article : le stock initial de chaque variante compte comme un réapprovisionnement,
+    // daté de l'enregistrement du produit (pour que le solde théorique reste juste dès le départ).
+    variants.forEach(v=>{
+      if((v.stock||0) > 0){
+        mouvements.push({
+          date: dateM, articleId, articleNom: nom,
+          variantId: v.id, taille: v.taille||'', couleur: v.couleur||'',
+          quantite: v.stock, type: 'réapprovisionnement',
+          vendeuse
+        });
+      }
+    });
+  }
   for(const m of mouvements){ await addDoc(collection(db,'mouvementsStock'), m); }
   closeModal(); render();
 }
