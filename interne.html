@@ -102,6 +102,8 @@
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:600;}
   .badge.low{background:#fbe6df;color:var(--danger);} .badge.ok{background:#e6efe9;color:var(--good);}
   .badge.wait{background:#fbf0d9;color:var(--gold);}
+  .badge.accent{background:#f5e4ea;color:var(--accent);}
+  .badge.muted{background:#ece7ea;color:var(--ink-soft);}
   .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
   .cat-chip{display:inline-flex;align-items:center;justify-content:center;min-height:44px;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 15px;font-size:.82rem;cursor:pointer;transition:background .18s ease,border-color .18s ease,color .18s ease;}
   .cat-chip:hover{border-color:var(--accent-light);color:var(--accent);}
@@ -212,6 +214,7 @@
     <button class="tab-btn" data-tab="pertes">Pertes</button>
     <button class="tab-btn" data-tab="precommandes">Précommandes <span class="count" id="preCount" style="display:none;">0</span></button>
     <button class="tab-btn" data-tab="historique">Historique</button>
+    <button class="tab-btn" data-tab="mouvements">Mouvements de stock</button>
   </div>
   <div id="tab-content"></div>
 </div>
@@ -301,7 +304,7 @@ window.__doLogout = () => signOut(auth);
    STATE
 --------------------------------------------------------- */
 let state = {
-  articles: [], ventes: [], pertes: [], precommandes: [],
+  articles: [], ventes: [], pertes: [], precommandes: [], mouvementsStock: [],
   meta: {
     nomBoutique: 'Happy Store',
     devise: '$',
@@ -448,6 +451,10 @@ window.addEventListener('fb-ready', () => {
     state.precommandes = snap.docs.map(d=> ({id:d.id, ...d.data()})); render();
   }, err=> console.error('precommandes snapshot error', err));
 
+  onSnapshot(query(collection(db,'mouvementsStock'), orderBy('date','desc')), snap=>{
+    state.mouvementsStock = snap.docs.map(d=> ({id:d.id, ...d.data()})); render();
+  }, err=> console.error('mouvementsStock snapshot error', err));
+
   getDoc(doc(db,'meta','config')).then(d=>{
     if(d.exists()){
       state.meta = Object.assign(state.meta, d.data());
@@ -480,6 +487,7 @@ function render(){
   else if(state.tab==='pertes') el.innerHTML = renderPertes();
   else if(state.tab==='precommandes') el.innerHTML = renderPrecommandes();
   else if(state.tab==='historique') el.innerHTML = renderHistorique();
+  else if(state.tab==='mouvements') el.innerHTML = renderMouvementsStock();
 }
 
 /* ---------------------------------------------------------
@@ -487,12 +495,18 @@ function render(){
 --------------------------------------------------------- */
 function computeStats(){
   let valeurAchat=0, valeurVente=0, stockUnits=0; const lowStock=[];
+  const stockParCategorieMap = {};
   state.articles.filter(a=> !a.supprime).forEach(a=> (a.variants||[]).forEach(v=>{
     valeurAchat += (v.stock||0)*(a.prixAchat||0);
     valeurVente += (v.stock||0)*(a.prixVente||0);
     stockUnits += (v.stock||0);
     if((v.stock||0) <= state.meta.seuil) lowStock.push({article:a, variant:v});
+    const cat = a.categorie || 'Sans catégorie';
+    stockParCategorieMap[cat] = (stockParCategorieMap[cat]||0) + (v.stock||0);
   }));
+  const stockParCategorie = Object.entries(stockParCategorieMap)
+    .map(([categorie,stock])=>({categorie,stock}))
+    .sort((a,b)=> b.stock-a.stock);
   const ca = state.ventes.reduce((s,v)=> s+(v.total||0),0);
   const profit = state.ventes.reduce((s,v)=> s+(v.profit||0),0);
   const pertesValeur = state.pertes.reduce((s,p)=> s+(p.qte||0)*(p.prixAchatUnit||0),0);
@@ -500,7 +514,7 @@ function computeStats(){
   const ventesJour = state.ventes.filter(v=> v.date && new Date(v.date).toDateString()===today);
   const caJour = ventesJour.reduce((s,v)=> s+(v.total||0),0);
   const enAttente = state.precommandes.filter(p=> p.statut==='non_payé');
-  return { valeurAchat, valeurVente, stockUnits, lowStock, ca, profit, pertesValeur, ventesJour, caJour, enAttente };
+  return { valeurAchat, valeurVente, stockUnits, lowStock, stockParCategorie, ca, profit, pertesValeur, ventesJour, caJour, enAttente };
 }
 
 function renderDashboard(){
@@ -523,6 +537,15 @@ function renderDashboard(){
       <div class="tag-card"><div class="label">Bénéfice net</div><div class="value ${beneficeNet>=0?'good':'danger'}">${money(beneficeNet)}</div><div class="hint">ventes − coût des pertes</div></div>
       <div class="tag-card"><div class="label">Pertes (valeur)</div><div class="value danger">${money(s.pertesValeur)}</div><div class="hint">${state.pertes.length} déclarations</div></div>
       <div class="tag-card"><div class="label">Précommandes en attente</div><div class="value ${s.enAttente.length?'danger':'good'}">${s.enAttente.length}</div><div class="hint">à traiter dans l'onglet dédié</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">Stock par catégorie</div>
+      ${s.stockParCategorie.length===0 ? '<div class="empty">Aucun article en stock.</div>' : s.stockParCategorie.map(c=>{
+        const max = s.stockParCategorie[0].stock || 1;
+        return `
+        <div style="margin-bottom:10px;"><div class="flex-between" style="margin-bottom:4px;"><span style="font-size:.82rem;font-weight:600;">${esc(c.categorie)}</span><span class="mono muted">${c.stock} unité${c.stock>1?'s':''}</span></div>
+        <div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden;"><div style="background:var(--accent);height:100%;width:${(c.stock/max)*100}%;"></div></div></div>
+      `;}).join('')}
     </div>
     <div class="grid two">
       <div class="card">
@@ -1436,8 +1459,42 @@ async function saveArticleForm(){
   if(stockApres>0) stockZeroDepuis = null;
   else if(stockAvant>0 && stockApres===0) stockZeroDepuis = new Date().toISOString();
   const record = { nom, categorie, prixAchat, prixVente, photoUrl, variants, stockZeroDepuis };
+
+  // Détecte les mouvements de stock manuels (réapprovisionnement / correction) avant d'écraser les variantes.
+  const mouvements = [];
+  if(existingArticle){
+    const dateM = new Date().toISOString();
+    const vendeuse = window.__currentVendeuse || '';
+    variants.forEach(v=>{
+      const avant = existingArticle.variants.find(ev=>ev.id===v.id);
+      const stockAvantV = avant ? (avant.stock||0) : 0;
+      const delta = (v.stock||0) - stockAvantV;
+      if(delta !== 0){
+        mouvements.push({
+          date: dateM, articleId: existingArticle.id, articleNom: nom,
+          variantId: v.id, taille: v.taille||'', couleur: v.couleur||'',
+          quantite: delta, type: delta>0 ? 'réapprovisionnement' : 'correction manuelle',
+          vendeuse
+        });
+      }
+    });
+    // Variantes retirées du formulaire : leur stock disparaît complètement, on le trace aussi.
+    existingArticle.variants.forEach(ev=>{
+      const encorePresente = variants.some(v=>v.id===ev.id);
+      if(!encorePresente && (ev.stock||0)>0){
+        mouvements.push({
+          date: dateM, articleId: existingArticle.id, articleNom: nom,
+          variantId: ev.id, taille: ev.taille||'', couleur: ev.couleur||'',
+          quantite: -(ev.stock||0), type: 'correction manuelle',
+          vendeuse
+        });
+      }
+    });
+  }
+
   if(articleFormDraft.id){ await setDoc(doc(db,'articles',articleFormDraft.id), record); }
   else{ await addDoc(collection(db,'articles'), record); }
+  for(const m of mouvements){ await addDoc(collection(db,'mouvementsStock'), m); }
   closeModal(); render();
 }
 async function deleteArticle(id){
@@ -1650,6 +1707,85 @@ function renderHistorique(){
   `;
 }
 function setHistFilter(f){ histFilter=f; render(); }
+
+/* ---------------------------------------------------------
+   MOUVEMENTS DE STOCK
+--------------------------------------------------------- */
+let mouvFilter = 'toutes';
+function setMouvFilter(f){ mouvFilter=f; render(); }
+function badgeMouvement(type){
+  if(type==='reappro') return '<span class="badge ok">Réapprovisionnement</span>';
+  if(type==='vente') return '<span class="badge accent">Vente</span>';
+  if(type==='perte') return '<span class="badge low">Perte</span>';
+  return '<span class="badge muted">Correction manuelle</span>';
+}
+function qteMouvementLabel(q){ return (q>0?'+':'') + q; }
+function renderMouvementsStock(){
+  const items = [
+    ...state.mouvementsStock.map(m=>({
+      date: m.date, type: m.type==='réapprovisionnement' ? 'reappro' : 'correction',
+      articleNom: m.articleNom, taille: m.taille, couleur: m.couleur,
+      quantite: m.quantite, vendeuse: m.vendeuse
+    })),
+    ...state.ventes.map(v=>({
+      date: v.date, type:'vente', articleNom: v.articleNom, taille: v.taille, couleur: v.couleur,
+      quantite: -(v.qte||0), vendeuse: v.vendeuse
+    })),
+    ...state.pertes.map(p=>({
+      date: p.date, type:'perte', articleNom: p.articleNom, taille: p.taille, couleur: p.couleur,
+      quantite: -(p.qte||0), vendeuse: p.vendeuse
+    })),
+  ].sort((a,b)=> new Date(b.date)-new Date(a.date));
+
+  const filtered = items.filter(i=>{
+    if(mouvFilter==='reappro') return i.type==='reappro';
+    if(mouvFilter==='ventes') return i.type==='vente';
+    if(mouvFilter==='pertes') return i.type==='perte';
+    return true;
+  });
+
+  const header = `
+    <div class="flex-between" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;"><div class="section-title" style="margin:0;">Mouvements de stock</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm ${mouvFilter==='toutes'?'btn-primary':'btn-ghost'}" onclick="setMouvFilter('toutes')">Toutes</button>
+        <button class="btn btn-sm ${mouvFilter==='reappro'?'btn-primary':'btn-ghost'}" onclick="setMouvFilter('reappro')">Réapprovisionnements</button>
+        <button class="btn btn-sm ${mouvFilter==='ventes'?'btn-primary':'btn-ghost'}" onclick="setMouvFilter('ventes')">Ventes</button>
+        <button class="btn btn-sm ${mouvFilter==='pertes'?'btn-primary':'btn-ghost'}" onclick="setMouvFilter('pertes')">Pertes</button>
+      </div>
+    </div>
+  `;
+  if(filtered.length===0) return header + '<div class="card"><div class="empty">Aucun mouvement pour le moment.</div></div>';
+
+  const rows = filtered.map(i=>`<tr><td class="mono muted">${fmtDate(i.date)}</td><td>${badgeMouvement(i.type)}</td>
+        <td>${esc(i.articleNom)}</td><td class="muted">${esc([i.taille,i.couleur].filter(Boolean).join(' / ')||'—')}</td>
+        <td class="num mono" style="color:${i.quantite>0?'var(--good)':'var(--danger)'};">${qteMouvementLabel(i.quantite)}</td>
+        <td class="muted">${esc(i.vendeuse||'—')}</td></tr>`).join('');
+  const cards = filtered.map(i=>{
+    const variante = [i.taille,i.couleur].filter(Boolean).join(' / ');
+    return `
+    <div class="card hist-card">
+      <div class="flex-between">
+        <span class="mono muted">${fmtDate(i.date)}</span>
+        ${badgeMouvement(i.type)}
+      </div>
+      <div style="font-weight:600;margin-top:6px;">${esc(i.articleNom)}</div>
+      ${variante ? `<div class="muted" style="font-size:.78rem;">${esc(variante)}</div>` : ''}
+      <div class="flex-between" style="margin-top:8px;">
+        <span class="muted">${esc(i.vendeuse||'—')}</span>
+        <span class="mono" style="font-weight:700;color:${i.quantite>0?'var(--good)':'var(--danger)'};">${qteMouvementLabel(i.quantite)}</span>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  return header + `
+    <div class="card table-wrap">
+      <table><thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Variante</th><th class="num">Quantité</th><th>Vendeuse</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>
+    <div class="cards-wrap">${cards}</div>
+  `;
+}
 
 function demanderSuppressionHistorique(type, id){
   const list = type==='vente' ? state.ventes : state.pertes;
