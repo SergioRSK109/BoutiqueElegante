@@ -317,6 +317,7 @@ let state = {
     tarifGroupe: null
   },
   tab: 'dashboard',
+  inventaireCategorie: null,
   vente: { query:'', results:[], article:null, variantId:null, qte:1, vendeuse:'', panier:[] },
   perte: { query:'', results:[], article:null, variantId:null, qte:1, raison:'Abîmé / endommagé', vendeuse:'' },
   loaded:false
@@ -419,6 +420,7 @@ document.getElementById('loginPassword').addEventListener('keydown', e=>{ if(e.k
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     state.tab = btn.dataset.tab;
+    state.inventaireCategorie = null;
     if(state.tab==='vente' && !state.vente.vendeuse) state.vente.vendeuse = window.__currentVendeuse || '';
     if(state.tab==='pertes' && !state.perte.vendeuse) state.perte.vendeuse = window.__currentVendeuse || '';
     render();
@@ -481,6 +483,7 @@ function render(){
 
   const el = document.getElementById('tab-content');
   if(!state.loaded){ el.innerHTML = '<div class="empty">Connexion à la base de données…</div>'; return; }
+  if(state.inventaireCategorie){ el.innerHTML = renderInventaireCategorie(state.inventaireCategorie); return; }
   if(state.tab==='dashboard') el.innerHTML = renderDashboard();
   else if(state.tab==='vente') el.innerHTML = renderVente();
   else if(state.tab==='stock') el.innerHTML = renderStock();
@@ -543,8 +546,10 @@ function renderDashboard(){
       ${s.stockParCategorie.length===0 ? '<div class="empty">Aucun article en stock.</div>' : s.stockParCategorie.map(c=>{
         const max = s.stockParCategorie[0].stock || 1;
         return `
-        <div style="margin-bottom:10px;"><div class="flex-between" style="margin-bottom:4px;"><span style="font-size:.82rem;font-weight:600;">${esc(c.categorie)}</span><span class="mono muted">${c.stock} unité${c.stock>1?'s':''}</span></div>
-        <div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden;"><div style="background:var(--accent);height:100%;width:${(c.stock/max)*100}%;"></div></div></div>
+        <button type="button" onclick="ouvrirInventaireCategorie('${esc(c.categorie)}')" style="display:block;width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;margin-bottom:10px;font-family:inherit;">
+          <div class="flex-between" style="margin-bottom:4px;"><span style="font-size:.82rem;font-weight:600;color:var(--ink);">${esc(c.categorie)} <span style="color:var(--ink-soft);font-weight:400;">›</span></span><span class="mono muted">${c.stock} unité${c.stock>1?'s':''}</span></div>
+          <div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden;"><div style="background:var(--accent);height:100%;width:${(c.stock/max)*100}%;"></div></div>
+        </button>
       `;}).join('')}
     </div>
     <div class="grid two">
@@ -574,6 +579,112 @@ function renderDashboard(){
         </tbody></table></div>
       `}
     </div>
+  `;
+}
+
+/* ---------------------------------------------------------
+   INVENTAIRE DÉTAILLÉ PAR CATÉGORIE (depuis le Tableau de bord)
+--------------------------------------------------------- */
+function ouvrirInventaireCategorie(categorie){ state.inventaireCategorie = categorie; render(); window.scrollTo(0,0); }
+function fermerInventaireCategorie(){ state.inventaireCategorie = null; render(); }
+function renderInventaireCategorie(categorie){
+  const articlesCat = state.articles.filter(a=> !a.supprime && (a.categorie||'Sans catégorie')===categorie);
+  const lignes = [];
+  articlesCat.forEach(a=>{
+    (a.variants||[]).forEach(v=>{
+      const entrees = state.mouvementsStock
+        .filter(m=> m.variantId===v.id && m.type==='réapprovisionnement')
+        .reduce((s,m)=> s+(m.quantite||0), 0);
+      const vendu = state.ventes
+        .filter(vt=> vt.variantId===v.id)
+        .reduce((s,vt)=> s+(vt.qte||0), 0);
+      const perdu = state.pertes
+        .filter(p=> p.variantId===v.id)
+        .reduce((s,p)=> s+(p.qte||0), 0);
+      const stockActuel = v.stock||0;
+      const soldeTheorique = entrees - vendu - perdu;
+      lignes.push({
+        articleNom: a.nom, taille: v.taille||'', couleur: v.couleur||'',
+        stockActuel, entrees, vendu, perdu, soldeTheorique,
+        ecart: soldeTheorique !== stockActuel
+      });
+    });
+  });
+
+  const header = `
+    <div class="flex-between" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin:0;">Inventaire — ${esc(categorie)}</div>
+      <button class="btn btn-sm btn-ghost" onclick="fermerInventaireCategorie()">← Retour au tableau de bord</button>
+    </div>
+  `;
+  if(lignes.length===0){
+    return header + '<div class="card"><div class="empty">Aucun article dans cette catégorie.</div></div>';
+  }
+
+  const totaux = lignes.reduce((t,l)=>({
+    stockActuel: t.stockActuel+l.stockActuel, entrees: t.entrees+l.entrees,
+    vendu: t.vendu+l.vendu, perdu: t.perdu+l.perdu, soldeTheorique: t.soldeTheorique+l.soldeTheorique
+  }), {stockActuel:0, entrees:0, vendu:0, perdu:0, soldeTheorique:0});
+
+  const ecartAttr = `title="Écart détecté : le solde théorique ne correspond pas au stock actuel (normal pour du stock déjà présent avant la mise en place du suivi des mouvements)"`;
+  const ecartIcon = `<span ${ecartAttr}>⚠️</span>`;
+
+  const rows = lignes.map(l=> `
+    <tr>
+      <td>${esc(l.articleNom)}</td>
+      <td class="muted">${esc([l.taille,l.couleur].filter(Boolean).join(' / ')||'Standard')}</td>
+      <td class="num mono">${l.stockActuel}</td>
+      <td class="num mono" style="color:var(--good);">+${l.entrees}</td>
+      <td class="num mono" style="color:var(--accent);">−${l.vendu}</td>
+      <td class="num mono" style="color:var(--danger);">−${l.perdu}</td>
+      <td class="num mono">${l.soldeTheorique} ${l.ecart?ecartIcon:''}</td>
+    </tr>
+  `).join('');
+
+  function statBlock(label, value, color){
+    return `<div><div class="muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;">${label}</div><strong class="mono"${color?` style="color:${color};"`:''}>${value}</strong></div>`;
+  }
+  const cards = lignes.map(l=> `
+    <div class="card hist-card">
+      <div style="font-weight:600;">${esc(l.articleNom)}</div>
+      <div class="muted" style="font-size:.78rem;margin-bottom:8px;">${esc([l.taille,l.couleur].filter(Boolean).join(' / ')||'Standard')}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:.82rem;">
+        ${statBlock('Stock actuel', l.stockActuel)}
+        ${statBlock('Entrées', '+'+l.entrees, 'var(--good)')}
+        ${statBlock('Vendu', '−'+l.vendu, 'var(--accent)')}
+        ${statBlock('Perdu', '−'+l.perdu, 'var(--danger)')}
+      </div>
+      <div class="flex-between" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
+        <span class="muted" style="font-size:.78rem;">Solde théorique</span>
+        <span class="mono" style="font-weight:700;">${l.soldeTheorique} ${l.ecart?ecartIcon:''}</span>
+      </div>
+    </div>
+  `).join('');
+
+  const totalsCard = `
+    <div class="card hist-card" style="border:1px solid var(--accent-light);">
+      <div style="font-weight:700;">TOTAUX — ${esc(categorie)}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:.82rem;margin-top:8px;">
+        ${statBlock('Stock actuel', totaux.stockActuel)}
+        ${statBlock('Entrées', '+'+totaux.entrees, 'var(--good)')}
+        ${statBlock('Vendu', '−'+totaux.vendu, 'var(--accent)')}
+        ${statBlock('Perdu', '−'+totaux.perdu, 'var(--danger)')}
+      </div>
+      <div class="flex-between" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
+        <span class="muted" style="font-size:.78rem;">Solde théorique</span>
+        <span class="mono" style="font-weight:700;">${totaux.soldeTheorique}</span>
+      </div>
+    </div>
+  `;
+
+  return header + `
+    <div class="card table-wrap">
+      <table><thead><tr><th>Article</th><th>Variante</th><th class="num">Stock actuel</th><th class="num">Entrées</th><th class="num">Vendu</th><th class="num">Perdu</th><th class="num">Solde théorique</th></tr></thead>
+      <tbody>${rows}
+        <tr style="font-weight:700;border-top:2px solid var(--line);"><td colspan="2">TOTAUX</td><td class="num mono">${totaux.stockActuel}</td><td class="num mono" style="color:var(--good);">+${totaux.entrees}</td><td class="num mono" style="color:var(--accent);">−${totaux.vendu}</td><td class="num mono" style="color:var(--danger);">−${totaux.perdu}</td><td class="num mono">${totaux.soldeTheorique}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="cards-wrap">${cards}${totalsCard}</div>
   `;
 }
 
